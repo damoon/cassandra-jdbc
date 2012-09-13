@@ -43,6 +43,7 @@ import org.junit.Test;
 import static junit.framework.Assert.assertEquals;
 import static org.apache.cassandra.utils.Hex.bytesToHex;
 import static org.apache.cassandra.utils.Hex.hexToBytes;
+import static org.junit.Assert.fail;
 
 /**
  * Test case for unit test of various methods of JDBC implementation.
@@ -114,43 +115,29 @@ public class JdbcDriverTest
         assertEquals(valuCaseSense, md.isCaseSensitive(col));
     }
 
-    @Test
+    @Test(expected=SQLNonTransientConnectionException.class)
     public void testNoHost() throws SQLException
     {
-        try
-        {
-            DriverManager.getConnection("jdbc:cassandra:localhost");
-        }
-        catch (Exception e)
-        {
-            assertEquals(SQLNonTransientConnectionException.class, e.getClass());
-        }
+        DriverManager.getConnection("jdbc:cassandra:localhost");
     }
 
-    @Test
+    @Test(expected=SQLNonTransientConnectionException.class)
     public void testBadKeyspace() throws SQLException
     {
-        try
-        {
-            DriverManager.getConnection("jdbc:cassandra://localhost/Keysp@ce");
-        }
-        catch (Exception e)
-        {
-            assertEquals(SQLNonTransientConnectionException.class, e.getClass());
-        }
+        DriverManager.getConnection("jdbc:cassandra://localhost/Keysp@ce");
     }
 
-    @Test
+    @Test(expected=SQLNonTransientConnectionException.class)
     public void testBadUserinfo() throws SQLException
     {
-        try
-        {
-            DriverManager.getConnection("jdbc:cassandra://root;root@localhost");
-        }
-        catch (Exception e)
-        {
-            assertEquals(SQLNonTransientConnectionException.class, e.getClass());
-        }
+        DriverManager.getConnection("jdbc:cassandra://root;root@localhost");
+    }
+    
+    @Test(expected=SQLNonTransientConnectionException.class)
+    public void testBadTransportFactory() throws SQLException
+    {
+        String url = String.format("jdbc:cassandra://%s:%d/%s?transportFactory=org.example.BadFactory",HOST, PORT, Schema.KEYSPACE_NAME);
+        DriverManager.getConnection(url);
     }
 
     @Test

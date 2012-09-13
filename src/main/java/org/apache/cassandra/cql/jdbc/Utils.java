@@ -34,6 +34,7 @@ import java.util.regex.Pattern;
 import java.util.zip.Deflater;
 
 import org.apache.cassandra.thrift.Compression;
+import org.apache.cassandra.thrift.TFramedTransportFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,6 +54,7 @@ class Utils
     public static final String PROTOCOL = "jdbc:cassandra:";
     public static final String DEFAULT_HOST = "localhost";
     public static final int DEFAULT_PORT = 9160;
+    public static final String DEFAULT_TRANSPORT_FACTORY = TFramedTransportFactory.class.getName();
 
     public static final String TAG_DESCRIPTION = "description";
     public static final String TAG_USER = "user";
@@ -64,6 +66,8 @@ class Utils
     public static final String TAG_CQL_VERSION = "cqlVersion";
     public static final String TAG_BUILD_VERSION = "buildVersion";
     public static final String TAG_THRIFT_VERSION = "thriftVersion";
+    public static final String TAG_TRANSPORT_FACTORY = "transportFactory";
+
 
     protected static final String WAS_CLOSED_CON = "method was called on a closed Connection";
     protected static final String WAS_CLOSED_STMT = "method was called on a closed Statement";
@@ -97,8 +101,8 @@ class Utils
     protected static final String HOST_IN_URL = "Connection url must specify a host, e.g., jdbc:cassandra://localhost:9170/Keyspace1";
     protected static final String HOST_REQUIRED = "a 'host' name is required to build a Connection";
     protected static final String BAD_KEYSPACE = "Keyspace names must be composed of alphanumerics and underscores (parsed: '%s')";
-    protected static final String URI_IS_SIMPLE = "Connection url may only include host, port, and keyspace and version option, e.g., jdbc:cassandra://localhost:9170/Keyspace1?version=2.0.0";
-    protected static final String NOT_OPTION = "Connection url only support the 'version' option";
+    protected static final String URI_IS_SIMPLE = "Connection url may only include host, port, and keyspace, version and transportFactory option, e.g., jdbc:cassandra://localhost:9170/Keyspace1?version=2.0.0&transportFactory=org.example.MyTransportFactory";
+    protected static final String NOT_OPTION = "Connection url only support the 'version' and 'transportFactory' options";
 
     protected static final Logger logger = LoggerFactory.getLogger(Utils.class);
 
@@ -189,18 +193,36 @@ class Utils
             if ((query != null) && (!query.isEmpty()))
             {
                String[] items = query.split("&");
-               if (items.length != 1) throw new SQLNonTransientConnectionException(URI_IS_SIMPLE);
+               if (items.length > 2) throw new SQLNonTransientConnectionException(URI_IS_SIMPLE);
                
-               String[] option = query.split("=");
-               if (!option[0].equalsIgnoreCase("version")) throw new SQLNonTransientConnectionException(NOT_OPTION);
-               if (option.length!=2) throw new SQLNonTransientConnectionException(NOT_OPTION);
-               props.setProperty(TAG_CQL_VERSION, option[1]);
+               for (String item : items)
+               {
+                   parseURLOption(item, props);
+               }
             }
         }
 
         if (logger.isTraceEnabled()) logger.trace("URL : '{}' parses to: {}", url, props);
 
         return props;
+    }
+    
+    private static void parseURLOption(String item, Properties props) throws SQLNonTransientConnectionException
+    {
+        String[] option = item.split("=");
+        if (option.length!=2) throw new SQLNonTransientConnectionException(NOT_OPTION);
+        if (option[0].equalsIgnoreCase("version"))
+        {
+            props.setProperty(TAG_CQL_VERSION, option[1]);    
+        }
+        else if (option[0].equalsIgnoreCase("transportFactory"))
+        {
+            props.setProperty(TAG_TRANSPORT_FACTORY, option[1]);
+        }
+        else
+        {
+            throw new SQLNonTransientConnectionException(NOT_OPTION);
+        }
     }
 
     /**
@@ -223,6 +245,18 @@ class Utils
         if (host==null)throw new SQLNonTransientConnectionException(HOST_REQUIRED);
         
         String version = (props.getProperty(TAG_CQL_VERSION)==null)? null : "version="+ props.getProperty(TAG_CQL_VERSION);
+        String transportFactory = (props.getProperty(TAG_TRANSPORT_FACTORY)==null)? null : "transportFactory="+ props.getProperty(TAG_TRANSPORT_FACTORY);
+        String options = null;
+        if (version != null)
+        {
+            options = version;
+        }
+        if (transportFactory != null)
+        {
+            if (options != null)
+                options += "&";
+            options += transportFactory;
+        }
         
         // construct a valid URI from parts... 
         URI uri;
@@ -234,7 +268,7 @@ class Utils
                 host,
                 props.getProperty(TAG_PORT_NUMBER)==null ? DEFAULT_PORT : Integer.parseInt(props.getProperty(TAG_PORT_NUMBER)),
                 keyspace,
-                version,
+                options,
                 null);
         }
         catch (Exception e)

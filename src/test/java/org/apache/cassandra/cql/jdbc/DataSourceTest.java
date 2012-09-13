@@ -32,6 +32,8 @@ import java.sql.Statement;
 import javax.sql.DataSource;
 
 import org.apache.cassandra.cql.ConnectionDetails;
+import org.apache.cassandra.thrift.TFramedTransportFactory;
+import org.apache.cassandra.thrift.TestTransportFactory;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -130,5 +132,22 @@ public class DataSourceTest
         // it is not a wrapper for this test class
         newds = (DataSource) ds.unwrap(this.getClass());        
         assertNotNull(newds);
+    }
+    
+    @Test
+    public void testTransportFactory() throws Exception
+    {
+        DataSource ds = new CassandraDataSource(HOST,PORT,KEYSPACE,USER,PASSWORD,VERSION);
+        
+        // not set so use default
+        java.sql.Connection cnx = ds.getConnection();
+        assertEquals(Utils.DEFAULT_TRANSPORT_FACTORY, 
+                ((CassandraConnection) cnx).getConnectionProps().get(Utils.TAG_TRANSPORT_FACTORY));
+        
+        CassandraDataSource cds = new CassandraDataSource(HOST,PORT,KEYSPACE,USER,PASSWORD,VERSION);
+        cds.setTransportFactory(TestTransportFactory.class.getName());
+        cnx = cds.getConnection();
+        assertEquals(TestTransportFactory.class.getName(), 
+                ((CassandraConnection) cnx).getConnectionProps().get(Utils.TAG_TRANSPORT_FACTORY));
     }
 }

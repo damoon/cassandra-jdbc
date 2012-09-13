@@ -31,6 +31,7 @@ import static org.apache.cassandra.cql.jdbc.Utils.TAG_PASSWORD;
 import static org.apache.cassandra.cql.jdbc.Utils.TAG_PORT_NUMBER;
 import static org.apache.cassandra.cql.jdbc.Utils.TAG_SERVER_NAME;
 import static org.apache.cassandra.cql.jdbc.Utils.TAG_USER;
+import static org.apache.cassandra.cql.jdbc.Utils.TAG_TRANSPORT_FACTORY;
 import static org.apache.cassandra.cql.jdbc.Utils.createSubName;
 
 import java.io.PrintWriter;
@@ -72,6 +73,8 @@ public class CassandraDataSource implements DataSource
     protected String password;
 
     protected String version = null;
+    
+    protected String transportFactory = null;
 
     public CassandraDataSource(String host, int port, String keyspace, String user, String password, String version)
     {
@@ -148,6 +151,11 @@ public class CassandraDataSource implements DataSource
         this.password = password;
     }
 
+    public void setTransportFactory(String transportFactory)
+    {
+        this.transportFactory = transportFactory;
+    }
+    
     public Connection getConnection() throws SQLException
     {
         return getConnection(null, null);
@@ -167,6 +175,7 @@ public class CassandraDataSource implements DataSource
         if (user!=null) props.setProperty(TAG_USER, user);
         if (password!=null) props.setProperty(TAG_PASSWORD, password);
         if (this.version != null) props.setProperty(TAG_CQL_VERSION, version);
+        if(this.transportFactory != null) props.setProperty(TAG_TRANSPORT_FACTORY, this.transportFactory);
 
         String url = PROTOCOL+createSubName(props);
         return DriverManager.getConnection(url, props);

@@ -29,6 +29,8 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
 
+import javax.security.auth.login.LoginException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,6 +41,7 @@ import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
+import org.apache.thrift.transport.TTransportException;
 
 import static org.apache.cassandra.cql.jdbc.Utils.*;
 
@@ -105,10 +108,11 @@ class CassandraConnection extends AbstractCassandraConnection implements Connect
             String version = props.getProperty(TAG_CQL_VERSION);
 
             TSocket socket = new TSocket(host, port);
-            transport = new TFramedTransport(socket);
+            ITransportFactory transportFactory = getTransportFactory(props);
+            connectionProps.put(Utils.TAG_TRANSPORT_FACTORY, transportFactory.getClass().getName());
+            transport = transportFactory.openTransport(socket);
             TProtocol protocol = new TBinaryProtocol(transport);
             client = new Cassandra.Client(protocol);
-            socket.open();
 
             if (username != null)
             {
@@ -150,8 +154,34 @@ class CassandraConnection extends AbstractCassandraConnection implements Connect
         {
             throw new SQLInvalidAuthorizationSpecException(e);
         }
+        catch (LoginException e)
+        {
+            throw new SQLInvalidAuthorizationSpecException(e);
+        }
     }
 
+    private ITransportFactory getTransportFactory(Properties props) throws TException
+    {
+        
+        String transportFactoryClassName = props.getProperty(Utils.TAG_TRANSPORT_FACTORY);
+        if (null != transportFactoryClassName)
+        {
+            try
+            {
+                return (ITransportFactory) Class.forName(transportFactoryClassName).newInstance();
+            }
+            catch (Exception e) 
+            {
+                throw new TException( String.format("Unable to initialise specified TransportFactory %s", transportFactoryClassName), e);
+            }
+        }
+        else
+        {
+            return new TFramedTransportFactory();
+        }
+    }
+    
+    
     private final void checkNotClosed() throws SQLException
     {
         if (isClosed()) throw new SQLNonTransientConnectionException(WAS_CLOSED_CON);
