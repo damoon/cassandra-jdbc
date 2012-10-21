@@ -88,13 +88,13 @@ public class PooledTests
 	}
 
 	@Test
-	public void twoMillionConnections() throws Exception
+	public void oneMillionConnections() throws Exception
 	{
 		CassandraDataSource connectionPoolDataSource = new CassandraDataSource(HOST, PORT, KEYSPACE, USER, PASSWORD, VERSION);
 
 		DataSource pooledCassandraDataSource = new PooledCassandraDataSource(connectionPoolDataSource);
 
-		for (int i = 0; i < 2000000; i++)
+		for (int i = 0; i < 1000000; i++)
 		{
 			Connection connection = pooledCassandraDataSource.getConnection();
 			connection.close();
@@ -102,7 +102,7 @@ public class PooledTests
 	}
 
 	@Test
-	public void twoMillionPreparedStatements() throws Exception
+	public void tenThousandPreparedStatements() throws Exception
 	{
 		CassandraDataSource connectionPoolDataSource = new CassandraDataSource(HOST, PORT, KEYSPACE, USER, PASSWORD, VERSION);
 

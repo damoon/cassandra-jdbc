@@ -24,6 +24,8 @@ import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLRecoverableException;
+import java.sql.SQLTimeoutException;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -37,7 +39,7 @@ import org.slf4j.LoggerFactory;
 
 public class PooledCassandraDataSource implements DataSource, ConnectionEventListener
 {
-	private static final int CONNECTION_IS_VALID_TIMEOUT = 5;
+	static final int CONNECTION_IS_VALID_TIMEOUT = 5;
 
 	private static final int MIN_POOL_SIZE = 4;
 
@@ -45,24 +47,25 @@ public class PooledCassandraDataSource implements DataSource, ConnectionEventLis
 
 	private static final Logger logger = LoggerFactory.getLogger(PooledCassandraDataSource.class);
 
-	private CassandraDataSource connectionPoolDataSource;
+	private CassandraDataSource dataSource;
 
 	private volatile Set<PooledCassandraConnection> freeConnections = new HashSet<PooledCassandraConnection>();
 
 	private volatile Set<PooledCassandraConnection> usedConnections = new HashSet<PooledCassandraConnection>();
 
-	public PooledCassandraDataSource(CassandraDataSource connectionPoolDataSource) throws SQLException
+	public PooledCassandraDataSource(CassandraDataSource dataSource) throws SQLException
 	{
-		this.connectionPoolDataSource = connectionPoolDataSource;
+		this.dataSource = dataSource;
 	}
 
 	@Override
 	public synchronized Connection getConnection() throws SQLException
 	{
 		PooledCassandraConnection pooledConnection;
+
 		if (freeConnections.isEmpty())
 		{
-			pooledConnection = connectionPoolDataSource.getPooledConnection();
+			pooledConnection = dataSource.getPooledConnection();
 			pooledConnection.addConnectionEventListener(this);
 		}
 		else
@@ -70,6 +73,7 @@ public class PooledCassandraDataSource implements DataSource, ConnectionEventLis
 			pooledConnection = freeConnections.iterator().next();
 			freeConnections.remove(pooledConnection);
 		}
+
 		usedConnections.add(pooledConnection);
 		return new ManagedConnection(pooledConnection);
 	}
@@ -86,20 +90,27 @@ public class PooledCassandraDataSource implements DataSource, ConnectionEventLis
 		PooledCassandraConnection connection = (PooledCassandraConnection) event.getSource();
 		usedConnections.remove(connection);
 		int freeConnectionsCount = freeConnections.size();
-		if (freeConnectionsCount < MIN_POOL_SIZE)
+		try
 		{
-			freeConnections.add(connection);
+			if (freeConnectionsCount < MIN_POOL_SIZE && !connection.getConnection().isClosed())
+			{
+				freeConnections.add(connection);
+			}
+			else
+			{
+				try
+				{
+					connection.close();
+				}
+				catch (SQLException e)
+				{
+					logger.error(e.getLocalizedMessage());
+				}
+			}
 		}
-		else
+		catch (SQLException e)
 		{
-			try
-			{
-				connection.close();
-			}
-			catch (SQLException e)
-			{
-				logger.error(e.getMessage());
-			}
+			logger.error(e.getLocalizedMessage());
 		}
 	}
 
@@ -107,17 +118,27 @@ public class PooledCassandraDataSource implements DataSource, ConnectionEventLis
 	public synchronized void connectionErrorOccurred(ConnectionEvent event)
 	{
 		PooledCassandraConnection connection = (PooledCassandraConnection) event.getSource();
+
 		try
 		{
-			if (!connection.getConnection().isValid(CONNECTION_IS_VALID_TIMEOUT)) {
-				connection.getConnection().close();
+			if (!(event.getSQLException() instanceof SQLRecoverableException)
+					|| !connection.getConnection().isValid(CONNECTION_IS_VALID_TIMEOUT))
+			{
+				try
+				{
+					connection.getConnection().close();
+				}
+				catch (SQLException e)
+				{
+					logger.error(e.getLocalizedMessage());
+				}
+				usedConnections.remove(connection);
 			}
 		}
-		catch (SQLException e)
+		catch (SQLTimeoutException e)
 		{
-			logger.error(e.getMessage());
+			logger.error(e.getLocalizedMessage());
 		}
-		usedConnections.remove(connection);
 	}
 
 	public synchronized void close()
@@ -136,7 +157,7 @@ public class PooledCassandraDataSource implements DataSource, ConnectionEventLis
 			}
 			catch (SQLException e)
 			{
-				logger.error(e.getMessage());
+				logger.error(e.getLocalizedMessage());
 			}
 		}
 	}
@@ -144,37 +165,36 @@ public class PooledCassandraDataSource implements DataSource, ConnectionEventLis
 	@Override
 	public int getLoginTimeout()
 	{
-		return connectionPoolDataSource.getLoginTimeout();
+		return dataSource.getLoginTimeout();
 	}
 
 	@Override
 	public void setLoginTimeout(int secounds)
 	{
-		connectionPoolDataSource.setLoginTimeout(secounds);
+		dataSource.setLoginTimeout(secounds);
 	}
 
 	@Override
 	public PrintWriter getLogWriter()
 	{
-		return connectionPoolDataSource.getLogWriter();
+		return dataSource.getLogWriter();
 	}
 
 	@Override
 	public void setLogWriter(PrintWriter writer)
 	{
-		connectionPoolDataSource.setLogWriter(writer);
+		dataSource.setLogWriter(writer);
 	}
 
 	@Override
 	public boolean isWrapperFor(Class<?> arg0)
 	{
-		return connectionPoolDataSource.isWrapperFor(arg0);
+		return dataSource.isWrapperFor(arg0);
 	}
 
 	@Override
 	public <T> T unwrap(Class<T> arg0) throws SQLException
 	{
-		return connectionPoolDataSource.unwrap(arg0);
+		return dataSource.unwrap(arg0);
 	}
-
 }

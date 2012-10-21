@@ -1,6 +1,6 @@
 package org.apache.cassandra.cql.jdbc;
 
-import static org.apache.cassandra.cql.jdbc.Utils.WAS_CLOSED_CON;
+import static org.apache.cassandra.cql.jdbc.Utils.WAS_CLOSED_STMT;
 
 import java.math.BigDecimal;
 import java.net.URL;
@@ -11,7 +11,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.RowId;
 import java.sql.SQLException;
-import java.sql.SQLNonTransientConnectionException;
+import java.sql.SQLNonTransientException;
 import java.sql.SQLWarning;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -35,11 +35,11 @@ class ManagedPreparedStatement extends AbstractStatement implements PreparedStat
 		this.preparedStatement = preparedStatement;
 	}
 
-	private void checkNotClosed() throws SQLNonTransientConnectionException
+	private void checkNotClosed() throws SQLNonTransientException
 	{
 		if (isClosed())
 		{
-			throw new SQLNonTransientConnectionException(WAS_CLOSED_CON);
+			throw new SQLNonTransientException(WAS_CLOSED_STMT);
 		}
 	}
 
@@ -56,9 +56,17 @@ class ManagedPreparedStatement extends AbstractStatement implements PreparedStat
 	}
 
 	@Override
-	public void close() throws SQLNonTransientConnectionException
+	public void close() throws SQLNonTransientException
 	{
-		checkNotClosed();
+		try
+		{
+			checkNotClosed();
+		}
+		catch (SQLNonTransientException sqlException)
+		{
+			pooledCassandraConnection.statementErrorOccurred(preparedStatement, sqlException);
+			throw sqlException;
+		}
 		pooledCassandraConnection.statementClosed(preparedStatement);
 		preparedStatement = null;
 	}

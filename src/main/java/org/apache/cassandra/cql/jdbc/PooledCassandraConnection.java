@@ -20,8 +20,11 @@
  */
 package org.apache.cassandra.cql.jdbc;
 
+import static org.apache.cassandra.cql.jdbc.PooledCassandraDataSource.CONNECTION_IS_VALID_TIMEOUT;
+
 import java.sql.SQLException;
 import java.sql.SQLRecoverableException;
+import java.sql.SQLTimeoutException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -50,7 +53,7 @@ class PooledCassandraConnection implements PooledConnection
 
 	private Map<String, Set<CassandraPreparedStatement>> usedPreparedStatements = new HashMap<String, Set<CassandraPreparedStatement>>();
 
-	public PooledCassandraConnection(CassandraConnection physicalConnection)
+	PooledCassandraConnection(CassandraConnection physicalConnection)
 	{
 		this.physicalConnection = physicalConnection;
 	}
@@ -131,7 +134,7 @@ class PooledCassandraConnection implements PooledConnection
 		}
 		catch (SQLException e)
 		{
-			logger.error(e.getMessage());
+			logger.error(e.getLocalizedMessage());
 		}
 
 	}
@@ -149,12 +152,25 @@ class PooledCassandraConnection implements PooledConnection
 		
 		if (!(event.getSQLException() instanceof SQLRecoverableException))
 		{
-			preparedStatement.close();
+			if (!preparedStatement.isClosed()) {
+				preparedStatement.close();
+			}
 			usedStatements.remove(preparedStatement);
+		}
+		
+		try
+		{
+			if (!physicalConnection.isValid(CONNECTION_IS_VALID_TIMEOUT)) {
+				connectionErrorOccurred(sqlException);
+			}
+		}
+		catch (SQLTimeoutException e)
+		{
+			logger.error(e.getLocalizedMessage());
 		}
 	}
 
-	public synchronized ManagedPreparedStatement prepareStatement(ManagedConnection managedConnection, String cql) throws SQLException
+	synchronized ManagedPreparedStatement prepareStatement(ManagedConnection managedConnection, String cql) throws SQLException
 	{
 		if (!freePreparedStatements.containsKey(cql)) {
 			freePreparedStatements.put(cql, new HashSet<CassandraPreparedStatement>());

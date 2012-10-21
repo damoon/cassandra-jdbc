@@ -123,9 +123,17 @@ class ManagedConnection extends AbstractConnection implements Connection
 	public PreparedStatement prepareStatement(String cql) throws SQLException
 	{
 		checkNotClosed();
-		ManagedPreparedStatement statement = pooledCassandraConnection.prepareStatement(this, cql);
-		statements.add(statement);
-		return statement;
+		try
+		{
+			ManagedPreparedStatement statement = pooledCassandraConnection.prepareStatement(this, cql);
+			statements.add(statement);
+			return statement;
+		}
+		catch (SQLException sqlException)
+		{
+			pooledCassandraConnection.connectionErrorOccurred(sqlException);
+			throw sqlException;
+		}
 	}
 
 	@Override
@@ -144,7 +152,7 @@ class ManagedConnection extends AbstractConnection implements Connection
 	@Override
 	public boolean isValid(int timeout) throws SQLTimeoutException
 	{
-		return physicalConnection.isValid(timeout);
+		return !isClosed() && physicalConnection.isValid(timeout);
 	}
 
 	@Override
