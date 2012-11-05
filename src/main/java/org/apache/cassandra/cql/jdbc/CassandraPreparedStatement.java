@@ -128,9 +128,11 @@ class CassandraPreparedStatement extends CassandraStatement implements PreparedS
     
     public void close()
     {
-        connection.removeStatement(this);
-        
-        connection = null;
+        if (connection != null)
+        {
+            connection.removeStatement(this);
+            connection = null;
+        }
     }
         
     private void doExecute() throws SQLException

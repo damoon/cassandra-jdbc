@@ -68,16 +68,19 @@ class ManagedConnection extends AbstractConnection implements Connection
 	@Override
 	public synchronized void close() throws SQLException
 	{
-		for (Statement statement : statements)
+		if (pooledCassandraConnection != null)
 		{
-			if (!statement.isClosed())
+			for (Statement statement : statements)
 			{
-				statement.close();
+				if (!statement.isClosed())
+				{
+					statement.close();
+				}
 			}
+			pooledCassandraConnection.connectionClosed();
+			pooledCassandraConnection = null;
+			physicalConnection = null;
 		}
-		pooledCassandraConnection.connectionClosed();
-		pooledCassandraConnection = null;
-		physicalConnection = null;
 	}
 
 	@Override

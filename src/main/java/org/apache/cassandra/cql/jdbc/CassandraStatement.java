@@ -145,9 +145,12 @@ class CassandraStatement extends AbstractStatement implements Statement, Compara
 
     public void close() throws SQLException
     {
-        connection.removeStatement(this);
-        connection = null;
-        cql = null;
+        if (connection != null)
+        {
+            connection.removeStatement(this);
+            connection = null;
+            cql = null;
+        }
     }
         
 

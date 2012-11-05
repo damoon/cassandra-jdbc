@@ -58,17 +58,11 @@ class ManagedPreparedStatement extends AbstractStatement implements PreparedStat
 	@Override
 	public void close() throws SQLNonTransientException
 	{
-		try
+		if (preparedStatement != null)
 		{
-			checkNotClosed();
+			pooledCassandraConnection.statementClosed(preparedStatement);
+			preparedStatement = null;
 		}
-		catch (SQLNonTransientException sqlException)
-		{
-			pooledCassandraConnection.statementErrorOccurred(preparedStatement, sqlException);
-			throw sqlException;
-		}
-		pooledCassandraConnection.statementClosed(preparedStatement);
-		preparedStatement = null;
 	}
 
 	@Override
