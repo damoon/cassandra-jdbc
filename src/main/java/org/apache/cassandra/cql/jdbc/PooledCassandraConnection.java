@@ -53,9 +53,29 @@ class PooledCassandraConnection implements PooledConnection
 
 	private Map<String, Set<CassandraPreparedStatement>> usedPreparedStatements = new HashMap<String, Set<CassandraPreparedStatement>>();
 
+	private int outhandedCount = 0;
+
+	private long creationMillistime;
+	
 	PooledCassandraConnection(CassandraConnection physicalConnection)
 	{
 		this.physicalConnection = physicalConnection;
+		creationMillistime = System.currentTimeMillis();
+	}
+	
+	long getCreationMillistime()
+	{
+		return creationMillistime;
+	}
+	
+	int getOuthandedCount()
+	{
+		return outhandedCount;
+	}
+	
+	void increaseOuthandedCount()
+	{
+		outhandedCount++;
 	}
 
 	@Override

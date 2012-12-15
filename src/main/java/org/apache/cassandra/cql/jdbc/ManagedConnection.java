@@ -47,6 +47,7 @@ class ManagedConnection extends AbstractConnection implements Connection
 
 	ManagedConnection(PooledCassandraConnection pooledCassandraConnection)
 	{
+		pooledCassandraConnection.increaseOuthandedCount();
 		this.pooledCassandraConnection = pooledCassandraConnection;
 		this.physicalConnection = pooledCassandraConnection.getConnection();
 	}

@@ -27,6 +27,8 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLRecoverableException;
 import java.sql.SQLTimeoutException;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 
 import javax.sql.ConnectionEvent;
@@ -47,6 +49,11 @@ public class PooledCassandraDataSource implements DataSource, ConnectionEventLis
 
 	private static final Logger logger = LoggerFactory.getLogger(PooledCassandraDataSource.class);
 
+	private static final int LIMIT_OUTHANDINGS = 512;
+
+	// 6 minutes
+	private static final long MAX_MILLIS_AGE = 360000;
+
 	private CassandraDataSource dataSource;
 
 	private volatile Set<PooledCassandraConnection> freeConnections = new HashSet<PooledCassandraConnection>();
@@ -61,21 +68,29 @@ public class PooledCassandraDataSource implements DataSource, ConnectionEventLis
 	@Override
 	public synchronized Connection getConnection() throws SQLException
 	{
-		PooledCassandraConnection pooledConnection;
-
-		if (freeConnections.isEmpty())
+		List<PooledCassandraConnection> connectionToRemoveFromFreePool = new LinkedList<PooledCassandraConnection>();
+		PooledCassandraConnection goodConnection = null;
+		for (PooledCassandraConnection pooledConnection : freeConnections) 
 		{
-			pooledConnection = dataSource.getPooledConnection();
-			pooledConnection.addConnectionEventListener(this);
+			connectionToRemoveFromFreePool.add(pooledConnection);
+			if (getLifetime(pooledConnection) > MAX_MILLIS_AGE)
+			{
+				pooledConnection.close();
+			}
+			else
+			{
+				goodConnection = pooledConnection;
+				break;
+			}
 		}
-		else
-		{
-			pooledConnection = freeConnections.iterator().next();
-			freeConnections.remove(pooledConnection);
+		freeConnections.removeAll(connectionToRemoveFromFreePool);
+		
+		if (goodConnection == null) {
+			goodConnection = dataSource.getPooledConnection();
 		}
-
-		usedConnections.add(pooledConnection);
-		return new ManagedConnection(pooledConnection);
+		goodConnection.addConnectionEventListener(this);
+		usedConnections.add(goodConnection);
+		return new ManagedConnection(goodConnection);
 	}
 
 	@Override
@@ -90,28 +105,42 @@ public class PooledCassandraDataSource implements DataSource, ConnectionEventLis
 		PooledCassandraConnection connection = (PooledCassandraConnection) event.getSource();
 		usedConnections.remove(connection);
 		int freeConnectionsCount = freeConnections.size();
+
+		if (freeConnectionsCount < MIN_POOL_SIZE && isStillUseable(connection))
+		{
+			freeConnections.add(connection);
+		}
+		else
+		{
+			try
+			{
+				connection.close();
+			}
+			catch (SQLException e)
+			{
+				logger.error(e.getLocalizedMessage());
+			}
+		}
+	}
+
+	private boolean isStillUseable(PooledCassandraConnection connection)
+	{
 		try
 		{
-			if (freeConnectionsCount < MIN_POOL_SIZE && !connection.getConnection().isClosed())
-			{
-				freeConnections.add(connection);
-			}
-			else
-			{
-				try
-				{
-					connection.close();
-				}
-				catch (SQLException e)
-				{
-					logger.error(e.getLocalizedMessage());
-				}
-			}
+			return connection.getOuthandedCount() < LIMIT_OUTHANDINGS
+					&& getLifetime(connection) < MAX_MILLIS_AGE
+					&& connection.getConnection().isValid(1);
 		}
-		catch (SQLException e)
+		catch (SQLTimeoutException e)
 		{
-			logger.error(e.getLocalizedMessage());
+			logger.error("this should not happen", e);
+			return false;
 		}
+	}
+
+	private long getLifetime(PooledCassandraConnection connection)
+	{
+		return System.currentTimeMillis()- connection.getCreationMillistime();
 	}
 
 	@Override
