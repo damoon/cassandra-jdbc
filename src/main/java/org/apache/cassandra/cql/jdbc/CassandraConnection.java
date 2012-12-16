@@ -317,6 +317,7 @@ class CassandraConnection extends AbstractConnection implements Connection
             }
             // the result is not important
             isAlive.executeQuery().close();
+            return true;
         }
         catch (SQLException e)
         {
@@ -327,8 +328,6 @@ class CassandraConnection extends AbstractConnection implements Connection
             // reset timeout
             socket.setTimeout(0);
         }
-
-        return true;
     }
 
     public boolean isWrapperFor(Class<?> arg0)

@@ -88,13 +88,13 @@ public class PooledTests
 	}
 
 	@Test
-	public void oneMillionConnections() throws Exception
+	public void tenThousandConnections() throws Exception
 	{
 		CassandraDataSource connectionPoolDataSource = new CassandraDataSource(HOST, PORT, KEYSPACE, USER, PASSWORD, VERSION);
 
-		DataSource pooledCassandraDataSource = new PooledCassandraDataSource(connectionPoolDataSource);
-
-		for (int i = 0; i < 1000000; i++)
+		PooledCassandraDataSource pooledCassandraDataSource = new PooledCassandraDataSource(connectionPoolDataSource);
+				
+		for (int i = 0; i < 10000; i++)
 		{
 			Connection connection = pooledCassandraDataSource.getConnection();
 			connection.close();
@@ -102,14 +102,14 @@ public class PooledTests
 	}
 
 	@Test
-	public void tenThousandPreparedStatements() throws Exception
+	public void twentyThousandPreparedStatements() throws Exception
 	{
 		CassandraDataSource connectionPoolDataSource = new CassandraDataSource(HOST, PORT, KEYSPACE, USER, PASSWORD, VERSION);
 
-		DataSource pooledCassandraDataSource = new PooledCassandraDataSource(connectionPoolDataSource);
+		PooledCassandraDataSource pooledCassandraDataSource = new PooledCassandraDataSource(connectionPoolDataSource);
 
 		Connection connection = pooledCassandraDataSource.getConnection();
-		for (int i = 0; i < 10000; i++)
+		for (int i = 0; i < 20000; i++)
 		{
 			PreparedStatement preparedStatement = connection.prepareStatement("SELECT someInt FROM pooled_test WHERE somekey = ?");
 			preparedStatement.close();
