@@ -27,7 +27,6 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.RowIdLifetime;
-import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 
 class CassandraDatabaseMetaData implements DatabaseMetaData
@@ -39,123 +38,123 @@ class CassandraDatabaseMetaData implements DatabaseMetaData
         this.connection = connection;
     }
     
-    public boolean isWrapperFor(Class<?> iface) throws SQLException
+    public boolean isWrapperFor(Class<?> iface)
     {
         return iface.isAssignableFrom(getClass());
     }
 
-    public <T> T unwrap(Class<T> iface) throws SQLException
+    public <T> T unwrap(Class<T> iface) throws SQLFeatureNotSupportedException
     {
         if (iface.isAssignableFrom(getClass())) return iface.cast(this);
         throw new SQLFeatureNotSupportedException(String.format(NO_INTERFACE, iface.getSimpleName()));
     }      
 
-    public boolean allProceduresAreCallable() throws SQLException
+    public boolean allProceduresAreCallable()
     {
         return false;
     }
 
-    public boolean allTablesAreSelectable() throws SQLException
+    public boolean allTablesAreSelectable()
     {
         return true;
     }
 
-    public boolean autoCommitFailureClosesAllResultSets() throws SQLException
+    public boolean autoCommitFailureClosesAllResultSets()
     {
         return false;
     }
 
-    public boolean dataDefinitionCausesTransactionCommit() throws SQLException
+    public boolean dataDefinitionCausesTransactionCommit()
     {
         return false;
     }
 
-    public boolean dataDefinitionIgnoredInTransactions() throws SQLException
+    public boolean dataDefinitionIgnoredInTransactions()
     {
         return false;
     }
 
-    public boolean deletesAreDetected(int arg0) throws SQLException
+    public boolean deletesAreDetected(int arg0)
     {
         return false;
     }
 
-    public boolean doesMaxRowSizeIncludeBlobs() throws SQLException
+    public boolean doesMaxRowSizeIncludeBlobs()
     {
         return false;
     }
 
-    public ResultSet getAttributes(String arg0, String arg1, String arg2, String arg3) throws SQLException
+    public ResultSet getAttributes(String arg0, String arg1, String arg2, String arg3)
     {
         return new CassandraResultSet();
     }
 
-    public ResultSet getBestRowIdentifier(String arg0, String arg1, String arg2, int arg3, boolean arg4) throws SQLException
+    public ResultSet getBestRowIdentifier(String arg0, String arg1, String arg2, int arg3, boolean arg4)
     {
         return new CassandraResultSet();
     }
 
-    public String getCatalogSeparator() throws SQLException
+    public String getCatalogSeparator()
     {
         return "";
     }
 
-    public String getCatalogTerm() throws SQLException
+    public String getCatalogTerm()
     {
         return "";
     }
 
-    public ResultSet getCatalogs() throws SQLException
+    public ResultSet getCatalogs()
     {
         return new CassandraResultSet();
     }
 
-    public ResultSet getClientInfoProperties() throws SQLException
+    public ResultSet getClientInfoProperties()
     {
         return new CassandraResultSet();
     }
 
-    public ResultSet getColumnPrivileges(String arg0, String arg1, String arg2, String arg3) throws SQLException
+    public ResultSet getColumnPrivileges(String arg0, String arg1, String arg2, String arg3)
     {
         return new CassandraResultSet();
     }
 
-    public ResultSet getColumns(String arg0, String arg1, String arg2, String arg3) throws SQLException
+    public ResultSet getColumns(String arg0, String arg1, String arg2, String arg3)
     {
         return new CassandraResultSet();
     }
 
-    public Connection getConnection() throws SQLException
+    public Connection getConnection()
     {
         return connection;
     }
 
-    public ResultSet getCrossReference(String arg0, String arg1, String arg2, String arg3, String arg4, String arg5) throws SQLException
+    public ResultSet getCrossReference(String arg0, String arg1, String arg2, String arg3, String arg4, String arg5)
     {
         return new CassandraResultSet();
     }
 
-    public int getDatabaseMajorVersion() throws SQLException
+    public int getDatabaseMajorVersion()
     {
         return CassandraConnection.DB_MAJOR_VERSION;
     }
 
-    public int getDatabaseMinorVersion() throws SQLException
+    public int getDatabaseMinorVersion()
     {
         return CassandraConnection.DB_MINOR_VERSION;
     }
 
-    public String getDatabaseProductName() throws SQLException
+    public String getDatabaseProductName()
     {
         return CassandraConnection.DB_PRODUCT_NAME;
     }
 
-    public String getDatabaseProductVersion() throws SQLException
+    public String getDatabaseProductVersion()
     {
         return String.format("%d.%d", CassandraConnection.DB_MAJOR_VERSION,CassandraConnection.DB_MINOR_VERSION);
     }
 
-    public int getDefaultTransactionIsolation() throws SQLException
+    public int getDefaultTransactionIsolation()
     {
         return Connection.TRANSACTION_NONE;
     }
@@ -170,759 +169,759 @@ class CassandraDatabaseMetaData implements DatabaseMetaData
         return CassandraDriver.DVR_MINOR_VERSION;
     }
 
-    public String getDriverName() throws SQLException
+    public String getDriverName()
     {
         return CassandraDriver.DVR_NAME;
     }
 
-    public String getDriverVersion() throws SQLException
+    public String getDriverVersion()
     {
         return String.format("%d.%d.%d", CassandraDriver.DVR_MAJOR_VERSION,CassandraDriver.DVR_MINOR_VERSION,CassandraDriver.DVR_PATCH_VERSION);
     }
 
-    public ResultSet getExportedKeys(String arg0, String arg1, String arg2) throws SQLException
+    public ResultSet getExportedKeys(String arg0, String arg1, String arg2)
     {
         return new CassandraResultSet();
     }
 
-    public String getExtraNameCharacters() throws SQLException
+    public String getExtraNameCharacters()
     {
         return "";
     }
 
-    public ResultSet getFunctionColumns(String arg0, String arg1, String arg2, String arg3) throws SQLException
+    public ResultSet getFunctionColumns(String arg0, String arg1, String arg2, String arg3)
     {
         return new CassandraResultSet();
     }
 
-    public ResultSet getFunctions(String arg0, String arg1, String arg2) throws SQLException
+    public ResultSet getFunctions(String arg0, String arg1, String arg2)
     {
         return new CassandraResultSet();
     }
 
-    public String getIdentifierQuoteString() throws SQLException
+    public String getIdentifierQuoteString()
     {
         return "'";
     }
 
-    public ResultSet getImportedKeys(String arg0, String arg1, String arg2) throws SQLException
+    public ResultSet getImportedKeys(String arg0, String arg1, String arg2)
     {
         return new CassandraResultSet();
     }
 
-    public ResultSet getIndexInfo(String arg0, String arg1, String arg2, boolean arg3, boolean arg4) throws SQLException
+    public ResultSet getIndexInfo(String arg0, String arg1, String arg2, boolean arg3, boolean arg4)
     {
         return new CassandraResultSet();
     }
 
-    public int getJDBCMajorVersion() throws SQLException
+    public int getJDBCMajorVersion()
     {
         return 4;
     }
 
-    public int getJDBCMinorVersion() throws SQLException
+    public int getJDBCMinorVersion()
     {
         return 0;
     }
 
-    public int getMaxBinaryLiteralLength() throws SQLException
+    public int getMaxBinaryLiteralLength()
     {
         // Cassandra can represent a 2GB value, but CQL has to encode it in hex
         return Integer.MAX_VALUE / 2;
     }
 
-    public int getMaxCatalogNameLength() throws SQLException
+    public int getMaxCatalogNameLength()
     {
         return Short.MAX_VALUE;
     }
 
-    public int getMaxCharLiteralLength() throws SQLException
+    public int getMaxCharLiteralLength()
     {
         return Integer.MAX_VALUE;
     }
 
-    public int getMaxColumnNameLength() throws SQLException
+    public int getMaxColumnNameLength()
     {
         return Short.MAX_VALUE;
     }
 
-    public int getMaxColumnsInGroupBy() throws SQLException
+    public int getMaxColumnsInGroupBy()
     {
         return 0;
     }
 
-    public int getMaxColumnsInIndex() throws SQLException
+    public int getMaxColumnsInIndex()
     {
         return 0;
     }
 
-    public int getMaxColumnsInOrderBy() throws SQLException
+    public int getMaxColumnsInOrderBy()
     {
         return 0;
     }
 
-    public int getMaxColumnsInSelect() throws SQLException
+    public int getMaxColumnsInSelect()
     {
         return 0;
     }
 
-    public int getMaxColumnsInTable() throws SQLException
+    public int getMaxColumnsInTable()
     {
         return 0;
     }
 
-    public int getMaxConnections() throws SQLException
+    public int getMaxConnections()
     {
         return 0;
     }
 
-    public int getMaxCursorNameLength() throws SQLException
+    public int getMaxCursorNameLength()
     {
         return 0;
     }
 
-    public int getMaxIndexLength() throws SQLException
+    public int getMaxIndexLength()
     {
         return 0;
     }
 
-    public int getMaxProcedureNameLength() throws SQLException
+    public int getMaxProcedureNameLength()
     {
         return 0;
     }
 
-    public int getMaxRowSize() throws SQLException
+    public int getMaxRowSize()
     {
         return 0;
     }
 
-    public int getMaxSchemaNameLength() throws SQLException
+    public int getMaxSchemaNameLength()
     {
         return 0;
     }
 
-    public int getMaxStatementLength() throws SQLException
+    public int getMaxStatementLength()
     {
         return 0;
     }
 
-    public int getMaxStatements() throws SQLException
+    public int getMaxStatements()
     {
         return 0;
     }
 
-    public int getMaxTableNameLength() throws SQLException
+    public int getMaxTableNameLength()
     {
         return 0;
     }
 
-    public int getMaxTablesInSelect() throws SQLException
+    public int getMaxTablesInSelect()
     {
         return 0;
     }
 
-    public int getMaxUserNameLength() throws SQLException
+    public int getMaxUserNameLength()
     {
         return 0;
     }
 
-    public String getNumericFunctions() throws SQLException
+    public String getNumericFunctions()
     {
         return null;
     }
 
-    public ResultSet getPrimaryKeys(String arg0, String arg1, String arg2) throws SQLException
+    public ResultSet getPrimaryKeys(String arg0, String arg1, String arg2)
     {
         return new CassandraResultSet();
     }
 
-    public ResultSet getProcedureColumns(String arg0, String arg1, String arg2, String arg3) throws SQLException
+    public ResultSet getProcedureColumns(String arg0, String arg1, String arg2, String arg3)
     {
         return new CassandraResultSet();
     }
 
-    public String getProcedureTerm() throws SQLException
+    public String getProcedureTerm()
     {
         return "";
     }
 
-    public ResultSet getProcedures(String arg0, String arg1, String arg2) throws SQLException
+    public ResultSet getProcedures(String arg0, String arg1, String arg2)
     {
         return new CassandraResultSet();
     }
 
-    public int getResultSetHoldability() throws SQLException
+    public int getResultSetHoldability()
     {
         return CassandraResultSet.DEFAULT_HOLDABILITY;
     }
 
-    public RowIdLifetime getRowIdLifetime() throws SQLException
+    public RowIdLifetime getRowIdLifetime()
     {
         return RowIdLifetime.ROWID_VALID_FOREVER;
     }
 
-    public String getSQLKeywords() throws SQLException
+    public String getSQLKeywords()
     {
         return "";
     }
 
-    public int getSQLStateType() throws SQLException
+    public int getSQLStateType()
     {
         return sqlStateSQL;
     }
 
-    public String getSchemaTerm() throws SQLException
+    public String getSchemaTerm()
     {
         return "";
     }
 
-    public ResultSet getSchemas() throws SQLException
+    public ResultSet getSchemas()
     {
         return new CassandraResultSet();
     }
 
-    public ResultSet getSchemas(String arg0, String arg1) throws SQLException
+    public ResultSet getSchemas(String arg0, String arg1)
     {
         return new CassandraResultSet();
     }
 
-    public String getSearchStringEscape() throws SQLException
+    public String getSearchStringEscape()
     {
         return "\\";
     }
 
-    public String getStringFunctions() throws SQLException
+    public String getStringFunctions()
     {
         return "";
     }
 
-    public ResultSet getSuperTables(String arg0, String arg1, String arg2) throws SQLException
+    public ResultSet getSuperTables(String arg0, String arg1, String arg2)
     {
         return new CassandraResultSet();
     }
 
-    public ResultSet getSuperTypes(String arg0, String arg1, String arg2) throws SQLException
+    public ResultSet getSuperTypes(String arg0, String arg1, String arg2)
     {
         return new CassandraResultSet();
     }
 
-    public String getSystemFunctions() throws SQLException
+    public String getSystemFunctions()
     {
         return "";
     }
 
-    public ResultSet getTablePrivileges(String arg0, String arg1, String arg2) throws SQLException
+    public ResultSet getTablePrivileges(String arg0, String arg1, String arg2)
     {
         return new CassandraResultSet();
     }
 
-    public ResultSet getTableTypes() throws SQLException
+    public ResultSet getTableTypes()
     {
         return new CassandraResultSet();
     }
 
-    public ResultSet getTables(String arg0, String arg1, String arg2, String[] arg3) throws SQLException
+    public ResultSet getTables(String arg0, String arg1, String arg2, String[] arg3)
     {
         return new CassandraResultSet();
     }
 
-    public String getTimeDateFunctions() throws SQLException
+    public String getTimeDateFunctions()
     {
         return "";
     }
 
-    public ResultSet getTypeInfo() throws SQLException
+    public ResultSet getTypeInfo()
     {
         return new CassandraResultSet();
     }
 
-    public ResultSet getUDTs(String arg0, String arg1, String arg2, int[] arg3) throws SQLException
+    public ResultSet getUDTs(String arg0, String arg1, String arg2, int[] arg3)
     {
         return new CassandraResultSet();
     }
 
-    public String getURL() throws SQLException
+    public String getURL()
     {
         return connection.url;
     }
 
-    public String getUserName() throws SQLException
+    public String getUserName()
     {
         return (connection.username==null) ? "" : connection.username;
     }
 
-    public ResultSet getVersionColumns(String arg0, String arg1, String arg2) throws SQLException
+    public ResultSet getVersionColumns(String arg0, String arg1, String arg2)
     {
         return new CassandraResultSet();
     }
 
-    public boolean insertsAreDetected(int arg0) throws SQLException
+    public boolean insertsAreDetected(int arg0)
     {
         return false;
     }
 
-    public boolean isCatalogAtStart() throws SQLException
+    public boolean isCatalogAtStart()
     {
         return false;
     }
 
-    public boolean isReadOnly() throws SQLException
+    public boolean isReadOnly()
     {
         return false;
     }
 
-    public boolean locatorsUpdateCopy() throws SQLException
+    public boolean locatorsUpdateCopy()
     {
         return false;
     }
 
-    public boolean nullPlusNonNullIsNull() throws SQLException
+    public boolean nullPlusNonNullIsNull()
     {
         return false;
     }
 
-    public boolean nullsAreSortedAtEnd() throws SQLException
+    public boolean nullsAreSortedAtEnd()
     {
         return false;
     }
 
-    public boolean nullsAreSortedAtStart() throws SQLException
+    public boolean nullsAreSortedAtStart()
     {
         return true;
     }
 
-    public boolean nullsAreSortedHigh() throws SQLException
+    public boolean nullsAreSortedHigh()
     {
         return true;
     }
 
-    public boolean nullsAreSortedLow() throws SQLException
+    public boolean nullsAreSortedLow()
     {
 
         return false;
     }
 
-    public boolean othersDeletesAreVisible(int arg0) throws SQLException
+    public boolean othersDeletesAreVisible(int arg0)
     {
         return false;
     }
 
-    public boolean othersInsertsAreVisible(int arg0) throws SQLException
+    public boolean othersInsertsAreVisible(int arg0)
     {
         return false;
     }
 
-    public boolean othersUpdatesAreVisible(int arg0) throws SQLException
+    public boolean othersUpdatesAreVisible(int arg0)
     {
         return false;
     }
 
-    public boolean ownDeletesAreVisible(int arg0) throws SQLException
+    public boolean ownDeletesAreVisible(int arg0)
     {
         return false;
     }
 
-    public boolean ownInsertsAreVisible(int arg0) throws SQLException
+    public boolean ownInsertsAreVisible(int arg0)
     {
         return false;
     }
 
-    public boolean ownUpdatesAreVisible(int arg0) throws SQLException
+    public boolean ownUpdatesAreVisible(int arg0)
     {
         return false;
     }
 
-    public boolean storesLowerCaseIdentifiers() throws SQLException
+    public boolean storesLowerCaseIdentifiers()
     {
         return false;
     }
 
-    public boolean storesLowerCaseQuotedIdentifiers() throws SQLException
+    public boolean storesLowerCaseQuotedIdentifiers()
     {
         return false;
     }
 
-    public boolean storesMixedCaseIdentifiers() throws SQLException
+    public boolean storesMixedCaseIdentifiers()
     {
         return true;
     }
 
-    public boolean storesMixedCaseQuotedIdentifiers() throws SQLException
+    public boolean storesMixedCaseQuotedIdentifiers()
     {
         return true;
     }
 
-    public boolean storesUpperCaseIdentifiers() throws SQLException
+    public boolean storesUpperCaseIdentifiers()
     {
         return false;
     }
 
-    public boolean storesUpperCaseQuotedIdentifiers() throws SQLException
+    public boolean storesUpperCaseQuotedIdentifiers()
     {
         return false;
     }
 
-    public boolean supportsANSI92EntryLevelSQL() throws SQLException
+    public boolean supportsANSI92EntryLevelSQL()
     {
         return false;
     }
 
-    public boolean supportsANSI92FullSQL() throws SQLException
+    public boolean supportsANSI92FullSQL()
     {
         return false;
     }
 
-    public boolean supportsANSI92IntermediateSQL() throws SQLException
+    public boolean supportsANSI92IntermediateSQL()
     {
         return false;
     }
 
-    public boolean supportsAlterTableWithAddColumn() throws SQLException
+    public boolean supportsAlterTableWithAddColumn()
     {
         return true;
     }
 
-    public boolean supportsAlterTableWithDropColumn() throws SQLException
+    public boolean supportsAlterTableWithDropColumn()
     {
         return true;
     }
 
-    public boolean supportsBatchUpdates() throws SQLException
+    public boolean supportsBatchUpdates()
     {
         return false;
     }
 
-    public boolean supportsCatalogsInDataManipulation() throws SQLException
+    public boolean supportsCatalogsInDataManipulation()
     {
         return false;
     }
 
-    public boolean supportsCatalogsInIndexDefinitions() throws SQLException
+    public boolean supportsCatalogsInIndexDefinitions()
     {
         return false;
     }
 
-    public boolean supportsCatalogsInPrivilegeDefinitions() throws SQLException
+    public boolean supportsCatalogsInPrivilegeDefinitions()
     {
         return false;
     }
 
-    public boolean supportsCatalogsInProcedureCalls() throws SQLException
+    public boolean supportsCatalogsInProcedureCalls()
     {
         return false;
     }
 
-    public boolean supportsCatalogsInTableDefinitions() throws SQLException
+    public boolean supportsCatalogsInTableDefinitions()
     {
         return false;
     }
 
-    public boolean supportsColumnAliasing() throws SQLException
+    public boolean supportsColumnAliasing()
     {
         return false;
     }
 
-    public boolean supportsConvert() throws SQLException
+    public boolean supportsConvert()
     {
         return false;
     }
 
-    public boolean supportsConvert(int arg0, int arg1) throws SQLException
+    public boolean supportsConvert(int arg0, int arg1)
     {
         return false;
     }
 
-    public boolean supportsCoreSQLGrammar() throws SQLException
+    public boolean supportsCoreSQLGrammar()
     {
         return false;
     }
 
-    public boolean supportsCorrelatedSubqueries() throws SQLException
+    public boolean supportsCorrelatedSubqueries()
     {
         return false;
     }
 
-    public boolean supportsDataDefinitionAndDataManipulationTransactions() throws SQLException
+    public boolean supportsDataDefinitionAndDataManipulationTransactions()
     {
         return false;
     }
 
-    public boolean supportsDataManipulationTransactionsOnly() throws SQLException
+    public boolean supportsDataManipulationTransactionsOnly()
     {
         return false;
     }
 
-    public boolean supportsDifferentTableCorrelationNames() throws SQLException
+    public boolean supportsDifferentTableCorrelationNames()
     {
         return false;
     }
 
-    public boolean supportsExpressionsInOrderBy() throws SQLException
+    public boolean supportsExpressionsInOrderBy()
     {
         return false;
     }
 
-    public boolean supportsExtendedSQLGrammar() throws SQLException
+    public boolean supportsExtendedSQLGrammar()
     {
         return false;
     }
 
-    public boolean supportsFullOuterJoins() throws SQLException
+    public boolean supportsFullOuterJoins()
     {
         return false;
     }
 
-    public boolean supportsGetGeneratedKeys() throws SQLException
+    public boolean supportsGetGeneratedKeys()
     {
         return false;
     }
 
-    public boolean supportsGroupBy() throws SQLException
+    public boolean supportsGroupBy()
     {
         return false;
     }
 
-    public boolean supportsGroupByBeyondSelect() throws SQLException
+    public boolean supportsGroupByBeyondSelect()
     {
         return false;
     }
 
-    public boolean supportsGroupByUnrelated() throws SQLException
+    public boolean supportsGroupByUnrelated()
     {
         return false;
     }
 
-    public boolean supportsIntegrityEnhancementFacility() throws SQLException
+    public boolean supportsIntegrityEnhancementFacility()
     {
         return false;
     }
 
-    public boolean supportsLikeEscapeClause() throws SQLException
+    public boolean supportsLikeEscapeClause()
     {
 
         return false;
     }
 
-    public boolean supportsLimitedOuterJoins() throws SQLException
+    public boolean supportsLimitedOuterJoins()
     {
         return false;
     }
 
-    public boolean supportsMinimumSQLGrammar() throws SQLException
+    public boolean supportsMinimumSQLGrammar()
     {
         return false;
     }
 
-    public boolean supportsMixedCaseIdentifiers() throws SQLException
+    public boolean supportsMixedCaseIdentifiers()
     {
         return true;
     }
 
-    public boolean supportsMixedCaseQuotedIdentifiers() throws SQLException
+    public boolean supportsMixedCaseQuotedIdentifiers()
     {
         return true;
     }
 
-    public boolean supportsMultipleOpenResults() throws SQLException
+    public boolean supportsMultipleOpenResults()
     {
         return false;
     }
 
-    public boolean supportsMultipleResultSets() throws SQLException
+    public boolean supportsMultipleResultSets()
     {
         return false;
     }
 
-    public boolean supportsMultipleTransactions() throws SQLException
+    public boolean supportsMultipleTransactions()
     {
         return false;
     }
 
-    public boolean supportsNamedParameters() throws SQLException
+    public boolean supportsNamedParameters()
     {
         return false;
     }
 
-    public boolean supportsNonNullableColumns() throws SQLException
+    public boolean supportsNonNullableColumns()
     {
 
         return false;
     }
 
-    public boolean supportsOpenCursorsAcrossCommit() throws SQLException
+    public boolean supportsOpenCursorsAcrossCommit()
     {
         return false;
     }
 
-    public boolean supportsOpenCursorsAcrossRollback() throws SQLException
+    public boolean supportsOpenCursorsAcrossRollback()
     {
         return false;
     }
 
-    public boolean supportsOpenStatementsAcrossCommit() throws SQLException
+    public boolean supportsOpenStatementsAcrossCommit()
     {
         return false;
     }
 
-    public boolean supportsOpenStatementsAcrossRollback() throws SQLException
+    public boolean supportsOpenStatementsAcrossRollback()
     {
         return false;
     }
 
-    public boolean supportsOrderByUnrelated() throws SQLException
+    public boolean supportsOrderByUnrelated()
     {
         return false;
     }
 
-    public boolean supportsOuterJoins() throws SQLException
+    public boolean supportsOuterJoins()
     {
         return false;
     }
 
-    public boolean supportsPositionedDelete() throws SQLException
+    public boolean supportsPositionedDelete()
     {
         return false;
     }
 
-    public boolean supportsPositionedUpdate() throws SQLException
+    public boolean supportsPositionedUpdate()
     {
         return false;
     }
 
-    public boolean supportsResultSetConcurrency(int arg0, int arg1) throws SQLException
+    public boolean supportsResultSetConcurrency(int arg0, int arg1)
     {
         return false;
     }
 
-    public boolean supportsResultSetHoldability(int holdability) throws SQLException
+    public boolean supportsResultSetHoldability(int holdability)
     {
 
         return ResultSet.HOLD_CURSORS_OVER_COMMIT==holdability;
     }
 
-    public boolean supportsResultSetType(int type) throws SQLException
+    public boolean supportsResultSetType(int type)
     {
 
         return ResultSet.TYPE_FORWARD_ONLY==type;
     }
 
-    public boolean supportsSavepoints() throws SQLException
+    public boolean supportsSavepoints()
     {
         return false;
     }
 
-    public boolean supportsSchemasInDataManipulation() throws SQLException
+    public boolean supportsSchemasInDataManipulation()
     {
         return false;
     }
 
-    public boolean supportsSchemasInIndexDefinitions() throws SQLException
+    public boolean supportsSchemasInIndexDefinitions()
     {
         return false;
     }
 
-    public boolean supportsSchemasInPrivilegeDefinitions() throws SQLException
+    public boolean supportsSchemasInPrivilegeDefinitions()
     {
         return false;
     }
 
-    public boolean supportsSchemasInProcedureCalls() throws SQLException
+    public boolean supportsSchemasInProcedureCalls()
     {
         return false;
     }
 
-    public boolean supportsSchemasInTableDefinitions() throws SQLException
+    public boolean supportsSchemasInTableDefinitions()
     {
         return false;
     }
 
-    public boolean supportsSelectForUpdate() throws SQLException
+    public boolean supportsSelectForUpdate()
     {
         return false;
     }
 
-    public boolean supportsStatementPooling() throws SQLException
+    public boolean supportsStatementPooling()
     {
         return false;
     }
 
-    public boolean supportsStoredFunctionsUsingCallSyntax() throws SQLException
+    public boolean supportsStoredFunctionsUsingCallSyntax()
     {
         return false;
     }
 
-    public boolean supportsStoredProcedures() throws SQLException
+    public boolean supportsStoredProcedures()
     {
         return false;
     }
 
-    public boolean supportsSubqueriesInComparisons() throws SQLException
+    public boolean supportsSubqueriesInComparisons()
     {
         return false;
     }
 
-    public boolean supportsSubqueriesInExists() throws SQLException
+    public boolean supportsSubqueriesInExists()
     {
         return false;
     }
 
-    public boolean supportsSubqueriesInIns() throws SQLException
+    public boolean supportsSubqueriesInIns()
     {
         return false;
     }
 
-    public boolean supportsSubqueriesInQuantifieds() throws SQLException
+    public boolean supportsSubqueriesInQuantifieds()
     {
         return false;
     }
 
-    public boolean supportsTableCorrelationNames() throws SQLException
+    public boolean supportsTableCorrelationNames()
     {
         return false;
     }
 
-    public boolean supportsTransactionIsolationLevel(int level) throws SQLException
+    public boolean supportsTransactionIsolationLevel(int level)
     {
 
         return Connection.TRANSACTION_NONE==level;
     }
 
-    public boolean supportsTransactions() throws SQLException
+    public boolean supportsTransactions()
     {
         return false;
     }
 
-    public boolean supportsUnion() throws SQLException
+    public boolean supportsUnion()
     {
         return false;
     }
 
-    public boolean supportsUnionAll() throws SQLException
+    public boolean supportsUnionAll()
     {
         return false;
     }
 
-    public boolean updatesAreDetected(int arg0) throws SQLException
+    public boolean updatesAreDetected(int arg0)
     {
         return false;
     }
 
-    public boolean usesLocalFilePerTable() throws SQLException
+    public boolean usesLocalFilePerTable()
     {
         return false;
     }
 
-    public boolean usesLocalFiles() throws SQLException
+    public boolean usesLocalFiles()
     {
         return false;
     }
     
-    public boolean generatedKeyAlwaysReturned() throws SQLException
+    public boolean generatedKeyAlwaysReturned() throws SQLFeatureNotSupportedException
     {
     	throw new SQLFeatureNotSupportedException(String.format(NOT_SUPPORTED));
     }
     
-    public ResultSet getPseudoColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) throws SQLException
+    public ResultSet getPseudoColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) throws SQLFeatureNotSupportedException
     {
     	throw new SQLFeatureNotSupportedException(String.format(NOT_SUPPORTED));
     }

@@ -77,7 +77,7 @@ class CassandraConnection extends AbstractConnection implements Connection
     /**
      * Set of all Statements that have been created by this connection
      */
-    private Set<Statement> statements = new ConcurrentSkipListSet<Statement>();
+    private Set<CassandraStatement> statements = new ConcurrentSkipListSet<CassandraStatement>();
 
     private Cassandra.Client client;
     private TTransport transport;
@@ -91,7 +91,7 @@ class CassandraConnection extends AbstractConnection implements Connection
 
     private TSocket socket;
     
-    PreparedStatement isAlive = null;
+    CassandraPreparedStatement isAlive = null;
     
     private String currentCqlVersion;
 
@@ -159,7 +159,7 @@ class CassandraConnection extends AbstractConnection implements Connection
         }
     }
 
-    private final void checkNotClosed() throws SQLException
+    private final void checkNotClosed() throws SQLNonTransientConnectionException
     {
         if (isClosed()) throw new SQLNonTransientConnectionException(WAS_CLOSED_CON);
     }
@@ -174,10 +174,10 @@ class CassandraConnection extends AbstractConnection implements Connection
     /**
      * On close of connection.
      */
-    public synchronized void close() throws SQLException
+    public synchronized void close()
     {
         // close all statements associated with this connection upon close
-        for (Statement statement : statements)
+        for (CassandraStatement statement : statements)
             statement.close();
         statements.clear();
         
@@ -194,31 +194,41 @@ class CassandraConnection extends AbstractConnection implements Connection
         throw new SQLFeatureNotSupportedException(ALWAYS_AUTOCOMMIT);
     }
 
-    public Statement createStatement() throws SQLException
+    public CassandraStatement createStatement() throws SQLNonTransientConnectionException
     {
         checkNotClosed();
-        Statement statement = new CassandraStatement(this);
+        CassandraStatement statement = new CassandraStatement(this);
         statements.add(statement);
         return statement;
     }
 
-    public Statement createStatement(int resultSetType, int resultSetConcurrency) throws SQLException
+    public CassandraStatement createStatement(int resultSetType, int resultSetConcurrency) throws SQLException
+    {
+        return createStatement(resultSetType, resultSetConcurrency, ResultSet.HOLD_CURSORS_OVER_COMMIT);
+    }
+
+    public CassandraStatement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException
     {
         checkNotClosed();
-        Statement statement = new CassandraStatement(this, null, resultSetType, resultSetConcurrency);
+        
+        if (!(resultSetType == ResultSet.TYPE_FORWARD_ONLY
+                || resultSetType == ResultSet.TYPE_SCROLL_INSENSITIVE
+                || resultSetType == ResultSet.TYPE_SCROLL_SENSITIVE)) throw new SQLSyntaxErrorException(BAD_TYPE_RSET);
+
+          if (!(resultSetConcurrency == ResultSet.CONCUR_READ_ONLY
+                || resultSetConcurrency == ResultSet.CONCUR_UPDATABLE)) throw new SQLSyntaxErrorException(BAD_TYPE_RSET);
+
+
+          if (!(resultSetHoldability == ResultSet.HOLD_CURSORS_OVER_COMMIT
+                || resultSetHoldability == ResultSet.CLOSE_CURSORS_AT_COMMIT))
+              throw new SQLSyntaxErrorException(BAD_HOLD_RSET);
+        
+        CassandraStatement statement = new CassandraStatement(this, null, resultSetType, resultSetConcurrency, resultSetHoldability);
         statements.add(statement);
         return statement;
     }
 
-    public Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException
-    {
-        checkNotClosed();
-        Statement statement = new CassandraStatement(this, null, resultSetType, resultSetConcurrency, resultSetHoldability);
-        statements.add(statement);
-        return statement;
-    }
-
-    public boolean getAutoCommit() throws SQLException
+    public boolean getAutoCommit() throws SQLNonTransientConnectionException
     {
         checkNotClosed();
         return autoCommit;
@@ -229,7 +239,7 @@ class CassandraConnection extends AbstractConnection implements Connection
         return connectionProps;
     }
 
-    public String getCatalog() throws SQLException
+    public String getCatalog() throws SQLNonTransientConnectionException
     {
         // This implementation does not support the catalog names so null is always returned if the connection is open.
         // but it is still an exception to call this on a closed connection.
@@ -237,51 +247,50 @@ class CassandraConnection extends AbstractConnection implements Connection
         return null;
     }
 
-    public Properties getClientInfo() throws SQLException
+    public Properties getClientInfo() throws SQLNonTransientConnectionException
     {
         checkNotClosed();
         return clientInfo;
     }
 
-    public String getClientInfo(String label) throws SQLException
+    public String getClientInfo(String label) throws SQLNonTransientConnectionException
     {
         checkNotClosed();
         return clientInfo.getProperty(label);
     }
 
-    public int getHoldability() throws SQLException
+    public int getHoldability() throws SQLNonTransientConnectionException
     {
         checkNotClosed();
         // the rationale is there are really no commits in Cassandra so no boundary...
         return CassandraResultSet.DEFAULT_HOLDABILITY;
     }
 
-    public DatabaseMetaData getMetaData() throws SQLException
+    public DatabaseMetaData getMetaData() throws SQLNonTransientConnectionException
     {
         checkNotClosed();
         return new CassandraDatabaseMetaData(this);
     }
 
-    public int getTransactionIsolation() throws SQLException
+    public int getTransactionIsolation() throws SQLNonTransientConnectionException
     {
         checkNotClosed();
         return transactionIsolation;
     }
 
-    public SQLWarning getWarnings() throws SQLException
+    public SQLWarning getWarnings() throws SQLNonTransientConnectionException
     {
         checkNotClosed();
         // the rationale is there are no warnings to return in this implementation...
         return null;
     }
 
-    public synchronized boolean isClosed() throws SQLException
+    public synchronized boolean isClosed()
     {
-
         return !isConnected();
     }
 
-    public boolean isReadOnly() throws SQLException
+    public boolean isReadOnly() throws SQLNonTransientConnectionException
     {
         checkNotClosed();
         return false;
@@ -322,12 +331,12 @@ class CassandraConnection extends AbstractConnection implements Connection
         return true;
     }
 
-    public boolean isWrapperFor(Class<?> arg0) throws SQLException
+    public boolean isWrapperFor(Class<?> arg0)
     {
         return false;
     }
 
-    public String nativeSQL(String sql) throws SQLException
+    public String nativeSQL(String sql) throws SQLNonTransientConnectionException
     {
         checkNotClosed();
         // the rationale is there are no distinction between grammars in this implementation...
@@ -335,76 +344,88 @@ class CassandraConnection extends AbstractConnection implements Connection
         return sql;
     }
 
-    public CassandraPreparedStatement prepareStatement(String sql) throws SQLException
+    public CassandraPreparedStatement prepareStatement(String cql) throws SQLException
     {
-        checkNotClosed();
-        CassandraPreparedStatement statement = new CassandraPreparedStatement(this, sql);
-        statements.add(statement);
-        return statement;
+        checkNotClosed();        
+        
+        try
+        {
+            CassandraPreparedStatement statement = new CassandraPreparedStatement(this, cql, prepare(cql));
+            statements.add(statement);
+            return statement;
+        }
+        catch (InvalidRequestException e)
+        {
+            throw new SQLSyntaxErrorException(e);
+        }
+         catch (TException e)
+        {
+            throw new SQLNonTransientConnectionException(e);
+        }
     }
 
-    public PreparedStatement prepareStatement(String arg0, int arg1, int arg2) throws SQLException
+    public PreparedStatement prepareStatement(String arg0, int arg1, int arg2) throws SQLFeatureNotSupportedException
     {
         throw new SQLFeatureNotSupportedException(NOT_SUPPORTED);
     }
 
-    public PreparedStatement prepareStatement(String arg0, int arg1, int arg2, int arg3) throws SQLException
+    public PreparedStatement prepareStatement(String arg0, int arg1, int arg2, int arg3) throws SQLFeatureNotSupportedException
     {
         throw new SQLFeatureNotSupportedException(NOT_SUPPORTED);
     }
 
-    public void rollback() throws SQLException
+    public void rollback() throws SQLNonTransientConnectionException, SQLFeatureNotSupportedException
     {
         checkNotClosed();
         throw new SQLFeatureNotSupportedException(ALWAYS_AUTOCOMMIT);
     }
 
-    public void setAutoCommit(boolean autoCommit) throws SQLException
+    public void setAutoCommit(boolean autoCommit) throws SQLNonTransientConnectionException, SQLFeatureNotSupportedException
     {
         checkNotClosed();
         if (!autoCommit) throw new SQLFeatureNotSupportedException(ALWAYS_AUTOCOMMIT);
     }
 
-    public void setCatalog(String arg0) throws SQLException
+    public void setCatalog(String arg0) throws SQLNonTransientConnectionException
     {
         checkNotClosed();
         // the rationale is there are no catalog name to set in this implementation...
         // so we are "silently ignoring" the request
     }
 
-    public void setClientInfo(Properties props) throws SQLClientInfoException
+    public void setClientInfo(Properties props)
     {
         // we don't use them but we will happily collect them for now...
         if (props != null) clientInfo = props;
     }
 
-    public void setClientInfo(String key, String value) throws SQLClientInfoException
+    public void setClientInfo(String key, String value)
     {
         // we don't use them but we will happily collect them for now...
         clientInfo.setProperty(key, value);
     }
 
-    public void setHoldability(int arg0) throws SQLException
+    public void setHoldability(int arg0) throws SQLNonTransientConnectionException
     {
         checkNotClosed();
         // the rationale is there are no holdability to set in this implementation...
         // so we are "silently ignoring" the request
     }
 
-    public void setReadOnly(boolean arg0) throws SQLException
+    public void setReadOnly(boolean arg0) throws SQLNonTransientConnectionException
     {
         checkNotClosed();
         // the rationale is all connections are read/write in the Cassandra implementation...
         // so we are "silently ignoring" the request
     }
 
-    public void setTransactionIsolation(int level) throws SQLException
+    public void setTransactionIsolation(int level) throws SQLNonTransientConnectionException, SQLFeatureNotSupportedException
     {
         checkNotClosed();
         if (level != Connection.TRANSACTION_NONE) throw new SQLFeatureNotSupportedException(NO_TRANSACTIONS);
     }
 
-    public <T> T unwrap(Class<T> iface) throws SQLException
+    public <T> T unwrap(Class<T> iface) throws SQLFeatureNotSupportedException
     {
         throw new SQLFeatureNotSupportedException(String.format(NO_INTERFACE, iface.getSimpleName()));
     }
@@ -469,7 +490,7 @@ class CassandraConnection extends AbstractConnection implements Connection
         }
     }
     
-    protected CqlPreparedResult prepare(String queryStr, Compression compression)throws InvalidRequestException, TException
+    protected CqlPreparedResult prepare(String queryStr, Compression compression) throws InvalidRequestException, TException
     {
         try
         {
@@ -500,7 +521,7 @@ class CassandraConnection extends AbstractConnection implements Connection
     /**
      * Remove a Statement from the Open Statements List
      */
-    protected boolean removeStatement(Statement statement)
+    protected boolean removeStatement(CassandraStatement statement)
     {
         return statements.remove(statement);
     }

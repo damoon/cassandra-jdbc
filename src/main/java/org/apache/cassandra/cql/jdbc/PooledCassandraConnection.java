@@ -85,7 +85,7 @@ class PooledCassandraConnection implements PooledConnection
 	}
 
 	@Override
-	public void close() throws SQLException
+	public void close()
 	{
 		physicalConnection.close();
 	}

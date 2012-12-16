@@ -32,7 +32,6 @@ import java.nio.ByteBuffer;
 import java.sql.Date;
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.RowId;
 import java.sql.SQLException;
@@ -76,25 +75,12 @@ class CassandraPreparedStatement extends CassandraStatement implements PreparedS
     private Map<Integer,ByteBuffer> bindValues = new LinkedHashMap<Integer,ByteBuffer>();
 
     
-    CassandraPreparedStatement(CassandraConnection con, String cql) throws SQLException
+    CassandraPreparedStatement(CassandraConnection con, String cql, CqlPreparedResult result)
     {
         super(con, cql);
         if (LOG.isTraceEnabled()) LOG.trace("CQL: "+ this.cql);
-        try
-        {
-            CqlPreparedResult result = con.prepare(cql);
-            
-            itemId = result.itemId;
-            count = result.count;
-        }
-        catch (InvalidRequestException e)
-        {
-            throw new SQLSyntaxErrorException(e);
-        }
-         catch (TException e)
-        {
-            throw new SQLNonTransientConnectionException(e);
-        }
+        itemId = result.itemId;
+        count = result.count;
     }
     
     String getCql()
@@ -102,13 +88,13 @@ class CassandraPreparedStatement extends CassandraStatement implements PreparedS
     	return cql;
     }
 
-    private final void checkIndex(int index) throws SQLException
+    private final void checkIndex(int index) throws SQLRecoverableException
     {
         if (index > count ) throw new SQLRecoverableException(String.format("the column index : %d is greater than the count of bound variable markers in the CQL: %d", index,count));
         if (index < 1 ) throw new SQLRecoverableException(String.format("the column index must be a positive number : %d", index));
     }
     
-    private List<ByteBuffer> getBindValues() throws SQLException
+    private List<ByteBuffer> getBindValues() throws SQLRecoverableException
     {
         List<ByteBuffer> values = new ArrayList<ByteBuffer>();
 //        System.out.println("bindValues.size() = "+bindValues.size());
@@ -200,7 +186,7 @@ class CassandraPreparedStatement extends CassandraStatement implements PreparedS
     }
 
 
-    public ResultSet executeQuery() throws SQLException
+    public CassandraResultSet executeQuery() throws SQLException
     {
         checkNotClosed();
         doExecute();
@@ -215,7 +201,7 @@ class CassandraPreparedStatement extends CassandraStatement implements PreparedS
         doExecute();
         if (currentResultSet != null) throw new SQLNonTransientException(NO_UPDATE_COUNT);
         return updateCount;
-     }
+    }
 
 
     public ResultSetMetaData getMetaData() throws SQLException

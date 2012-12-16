@@ -197,7 +197,7 @@ public class CassandraDataSource implements ConnectionPoolDataSource, DataSource
         return iface.isAssignableFrom(getClass());
     }
 
-    public <T> T unwrap(Class<T> iface) throws SQLException
+    public <T> T unwrap(Class<T> iface) throws SQLFeatureNotSupportedException
     {
         if (iface.isAssignableFrom(getClass())) return iface.cast(this);
         throw new SQLFeatureNotSupportedException(String.format(NO_INTERFACE, iface.getSimpleName()));

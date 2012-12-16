@@ -86,17 +86,15 @@ class CassandraResultSet extends AbstractResultSet implements CassandraResultSet
 
     private final CResultSetMetaData meta;
 
-    private final Statement statement;
-
-    private int resultSetType;
-
-    private int fetchDirection;
-
-    private int fetchSize;
+    private final CassandraStatement statement;
 
     private boolean wasNull;
 
     private CqlMetadata schema;
+    
+	private Integer fetchDirection;
+    
+	private Integer fetchSize;
 
     /**
      * no argument constructor.
@@ -111,13 +109,10 @@ class CassandraResultSet extends AbstractResultSet implements CassandraResultSet
     /**
      * Instantiates a new cassandra result set.
      */
-    CassandraResultSet(Statement statement, CqlResult resultSet, String keyspace) throws SQLException
+    CassandraResultSet(CassandraStatement statement, CqlResult resultSet, String keyspace)
     {
         this.statement = statement;
         this.keyspace = keyspace;
-        this.resultSetType = statement.getResultSetType();
-        this.fetchDirection = statement.getFetchDirection();
-        this.fetchSize = statement.getFetchSize();
         this.schema = resultSet.schema;
 
         rowsIterator = resultSet.getRowsIterator();
@@ -160,59 +155,59 @@ class CassandraResultSet extends AbstractResultSet implements CassandraResultSet
         }
     }
     
-    public boolean absolute(int arg0) throws SQLException
+    public boolean absolute(int arg0) throws SQLFeatureNotSupportedException
     {
         throw new SQLFeatureNotSupportedException(NOT_SUPPORTED);
     }
 
-    public void afterLast() throws SQLException
+    public void afterLast() throws SQLFeatureNotSupportedException
     {
         throw new SQLFeatureNotSupportedException(NOT_SUPPORTED);
     }
 
-    public void beforeFirst() throws SQLException
+    public void beforeFirst() throws SQLFeatureNotSupportedException
     {
         throw new SQLFeatureNotSupportedException(NOT_SUPPORTED);
     }
 
-    private final void checkIndex(int index) throws SQLException
+    private final void checkIndex(int index) throws SQLSyntaxErrorException
     {
         // 1 <= index <= size()
         if (index < 1 || index > values.size())
             throw new SQLSyntaxErrorException(String.format(MUST_BE_POSITIVE, String.valueOf(index))+" "+values.size());
     }
 
-    private final void checkName(String name) throws SQLException
+    private final void checkName(String name) throws SQLSyntaxErrorException
     {
         if (indexMap.get(name) == null) throw new SQLSyntaxErrorException(String.format(VALID_LABELS, name));
     }
 
-    private final void checkNotClosed() throws SQLException
+    private final void checkNotClosed() throws SQLRecoverableException
     {
         if (isClosed()) throw new SQLRecoverableException(WAS_CLOSED_RSLT);
     }
 
-    public void clearWarnings() throws SQLException
+    public void clearWarnings() throws SQLRecoverableException
     {
         // This implementation does not support the collection of warnings so clearing is a no-op
         // but it is still an exception to call this on a closed connection.
         checkNotClosed();
     }
 
-    public void close() throws SQLException
+    public void close()
     {
         indexMap = null;
         values = null;
     }
 
-    public int findColumn(String name) throws SQLException
+    public int findColumn(String name) throws SQLRecoverableException, SQLSyntaxErrorException
     {
         checkNotClosed();
         checkName(name);
         return indexMap.get(name).intValue();
     }
 
-    public boolean first() throws SQLException
+    public boolean first() throws SQLFeatureNotSupportedException
     {
         throw new SQLFeatureNotSupportedException(NOT_SUPPORTED);
     }
@@ -237,14 +232,15 @@ class CassandraResultSet extends AbstractResultSet implements CassandraResultSet
         return getBigDecimal(indexMap.get(name).intValue());
     }
 
-    /** @deprecated */
+    /** @throws SQLException 
+     * @deprecated */
     public BigDecimal getBigDecimal(String name, int scale) throws SQLException
     {
         checkName(name);
         return (getBigDecimal(indexMap.get(name).intValue())).setScale(scale);
     }
 
-    private BigDecimal getBigDecimal(TypedColumn<?> column) throws SQLException
+    private BigDecimal getBigDecimal(TypedColumn<?> column) throws SQLRecoverableException, SQLSyntaxErrorException
     {
         checkNotClosed();
         Object value = column.getValue();
@@ -321,7 +317,7 @@ class CassandraResultSet extends AbstractResultSet implements CassandraResultSet
         return getBoolean(indexMap.get(name).intValue());
     }
 
-    private final Boolean getBoolean(TypedColumn<?> column) throws SQLException
+    private final Boolean getBoolean(TypedColumn<?> column) throws SQLRecoverableException, SQLSyntaxErrorException
     {
         checkNotClosed();
         Object value = column.getValue();
@@ -361,7 +357,7 @@ class CassandraResultSet extends AbstractResultSet implements CassandraResultSet
         return getByte(indexMap.get(name).intValue());
     }
 
-    private final Byte getByte(TypedColumn<?> column) throws SQLException
+    private final Byte getByte(TypedColumn<?> column) throws SQLRecoverableException, SQLSyntaxErrorException
     {
         checkNotClosed();
         Object value = column.getValue();
@@ -397,7 +393,7 @@ class CassandraResultSet extends AbstractResultSet implements CassandraResultSet
         return getBytes(indexMap.get(name).intValue());
     }
 
-    private byte[] getBytes(TypedColumn<?> column) throws SQLException
+    private byte[] getBytes(TypedColumn<?> column) throws SQLRecoverableException
     {
         checkNotClosed();
         ByteBuffer value = (ByteBuffer) column.getRawColumn().value;
@@ -520,12 +516,19 @@ class CassandraResultSet extends AbstractResultSet implements CassandraResultSet
     public int getFetchDirection() throws SQLException
     {
         checkNotClosed();
+        if (fetchDirection != null) {
+        	fetchDirection = statement.getFetchDirection();
+        }
+        
         return fetchDirection;
     }
 
     public int getFetchSize() throws SQLException
     {
         checkNotClosed();
+        if (fetchSize != null) {
+        	fetchSize = statement.getFetchSize();
+        }
         return fetchSize;
     }
 
@@ -615,7 +618,7 @@ class CassandraResultSet extends AbstractResultSet implements CassandraResultSet
         throw new SQLSyntaxErrorException(String.format(NOT_TRANSLATABLE, value.getClass().getSimpleName(), "int"));
     }
 
-    public byte[] getKey() throws SQLException
+    public byte[] getKey()
     {
         return curRowKey;
     }
@@ -880,7 +883,7 @@ class CassandraResultSet extends AbstractResultSet implements CassandraResultSet
     public int getType() throws SQLException
     {
         checkNotClosed();
-        return resultSetType;
+        return statement.getResultSetType();
     }
 
     // URL (awaiting some clarifications as to how it is stored in C* ... just a validated Sting in URL format?
@@ -918,7 +921,7 @@ class CassandraResultSet extends AbstractResultSet implements CassandraResultSet
         return rowNumber == 0;
     }
 
-    public boolean isClosed() throws SQLException
+    public boolean isClosed()
     {
         return values == null;
     }
@@ -1011,7 +1014,7 @@ class CassandraResultSet extends AbstractResultSet implements CassandraResultSet
         throw new SQLFeatureNotSupportedException(String.format(NO_INTERFACE, iface.getSimpleName()));
     }
 
-    public boolean wasNull() throws SQLException
+    public boolean wasNull()
     {
         return wasNull;
     }

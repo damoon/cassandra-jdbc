@@ -26,7 +26,6 @@ import static org.apache.cassandra.cql.jdbc.Utils.WAS_CLOSED_CON;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
-import java.sql.SQLClientInfoException;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLNonTransientConnectionException;
@@ -43,7 +42,9 @@ class ManagedConnection extends AbstractConnection implements Connection
 
 	private CassandraConnection physicalConnection;
 
-	private Set<Statement> statements = new HashSet<Statement>();
+	private Set<CassandraStatement> statements = new HashSet<CassandraStatement>();
+
+	private Set<ManagedPreparedStatement> managedStatements = new HashSet<ManagedPreparedStatement>();
 
 	ManagedConnection(PooledCassandraConnection pooledCassandraConnection)
 	{
@@ -67,11 +68,18 @@ class ManagedConnection extends AbstractConnection implements Connection
 	}
 
 	@Override
-	public synchronized void close() throws SQLException
+	public synchronized void close()
 	{
 		if (pooledCassandraConnection != null)
 		{
-			for (Statement statement : statements)
+			for (CassandraStatement statement : statements)
+			{
+				if (!statement.isClosed())
+				{
+					statement.close();
+				}
+			}
+			for (ManagedPreparedStatement statement : managedStatements)
 			{
 				if (!statement.isClosed())
 				{
@@ -85,13 +93,13 @@ class ManagedConnection extends AbstractConnection implements Connection
 	}
 
 	@Override
-	public <T> T unwrap(Class<T> iface) throws SQLException
+	public <T> T unwrap(Class<T> iface) throws SQLFeatureNotSupportedException
 	{
 		throw new SQLFeatureNotSupportedException(String.format(NO_INTERFACE, iface.getSimpleName()));
 	}
 
 	@Override
-	public boolean isWrapperFor(Class<?> iface) throws SQLException
+	public boolean isWrapperFor(Class<?> iface)
 	{
 		return false;
 	}
@@ -100,7 +108,7 @@ class ManagedConnection extends AbstractConnection implements Connection
 	public Statement createStatement() throws SQLException
 	{
 		checkNotClosed();
-		Statement statement = physicalConnection.createStatement();
+		CassandraStatement statement = physicalConnection.createStatement();
 		statements.add(statement);
 		return statement;
 	}
@@ -109,7 +117,7 @@ class ManagedConnection extends AbstractConnection implements Connection
 	public Statement createStatement(int resultSetType, int resultSetConcurrency) throws SQLException
 	{
 		checkNotClosed();
-		Statement statement = physicalConnection.createStatement(resultSetType, resultSetConcurrency);
+		CassandraStatement statement = physicalConnection.createStatement(resultSetType, resultSetConcurrency);
 		statements.add(statement);
 		return statement;
 	}
@@ -118,7 +126,7 @@ class ManagedConnection extends AbstractConnection implements Connection
 	public Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException
 	{
 		checkNotClosed();
-		Statement statement = physicalConnection.createStatement(resultSetType, resultSetConcurrency, resultSetHoldability);
+		CassandraStatement statement = physicalConnection.createStatement(resultSetType, resultSetConcurrency, resultSetHoldability);
 		statements.add(statement);
 		return statement;
 	}
@@ -130,7 +138,7 @@ class ManagedConnection extends AbstractConnection implements Connection
 		try
 		{
 			ManagedPreparedStatement statement = pooledCassandraConnection.prepareStatement(this, cql);
-			statements.add(statement);
+			managedStatements.add(statement);
 			return statement;
 		}
 		catch (SQLException sqlException)
@@ -141,14 +149,14 @@ class ManagedConnection extends AbstractConnection implements Connection
 	}
 
 	@Override
-	public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency) throws SQLException
+	public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency) throws SQLFeatureNotSupportedException
 	{
 		throw new SQLFeatureNotSupportedException(NOT_SUPPORTED);
 	}
 
 	@Override
 	public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability)
-			throws SQLException
+			throws SQLFeatureNotSupportedException
 	{
 		throw new SQLFeatureNotSupportedException(NOT_SUPPORTED);
 	}
@@ -160,7 +168,7 @@ class ManagedConnection extends AbstractConnection implements Connection
 	}
 
 	@Override
-	public void setClientInfo(String name, String value) throws SQLClientInfoException
+	public void setClientInfo(String name, String value)
 	{
 		if (!isClosed())
 		{
@@ -169,7 +177,7 @@ class ManagedConnection extends AbstractConnection implements Connection
 	}
 
 	@Override
-	public void setClientInfo(Properties properties) throws SQLClientInfoException
+	public void setClientInfo(Properties properties)
 	{
 		if (!isClosed())
 		{

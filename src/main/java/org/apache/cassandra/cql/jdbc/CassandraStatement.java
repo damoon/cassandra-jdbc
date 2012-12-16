@@ -75,75 +75,58 @@ class CassandraStatement extends AbstractStatement implements Statement, Compara
 
     protected int resultSetHoldability = CassandraResultSet.DEFAULT_HOLDABILITY;
 
-    protected ResultSet currentResultSet = null;
+    protected CassandraResultSet currentResultSet = null;
 
     protected int updateCount = -1;
 
     protected boolean escapeProcessing = true;
 
-    CassandraStatement(CassandraConnection con) throws SQLException
+    CassandraStatement(CassandraConnection con)
     {
         this(con, null);
     }
 
-    CassandraStatement(CassandraConnection con, String cql) throws SQLException
+    CassandraStatement(CassandraConnection con, String cql)
     {
         this.connection = con;
         this.cql = cql;
-    }
-
-    CassandraStatement(CassandraConnection con, String cql, int resultSetType, int resultSetConcurrency) throws SQLException
-    {
-        this(con, cql, resultSetType, resultSetConcurrency, ResultSet.HOLD_CURSORS_OVER_COMMIT);
     }
 
     CassandraStatement(CassandraConnection con, String cql, int resultSetType, int resultSetConcurrency,
-                       int resultSetHoldability) throws SQLException
+                       int resultSetHoldability)
     {
-        this.connection = con;
-        this.cql = cql;
+    	this(con, cql);
 
-        if (!(resultSetType == ResultSet.TYPE_FORWARD_ONLY
-              || resultSetType == ResultSet.TYPE_SCROLL_INSENSITIVE
-              || resultSetType == ResultSet.TYPE_SCROLL_SENSITIVE)) throw new SQLSyntaxErrorException(BAD_TYPE_RSET);
         this.resultSetType = resultSetType;
-
-        if (!(resultSetConcurrency == ResultSet.CONCUR_READ_ONLY
-              || resultSetConcurrency == ResultSet.CONCUR_UPDATABLE)) throw new SQLSyntaxErrorException(BAD_TYPE_RSET);
         this.resultSetConcurrency = resultSetConcurrency;
-
-
-        if (!(resultSetHoldability == ResultSet.HOLD_CURSORS_OVER_COMMIT
-              || resultSetHoldability == ResultSet.CLOSE_CURSORS_AT_COMMIT))
-            throw new SQLSyntaxErrorException(BAD_HOLD_RSET);
         this.resultSetHoldability = resultSetHoldability;
     }
 
-    public void addBatch(String arg0) throws SQLException
+    public void addBatch(String arg0) throws SQLRecoverableException, SQLFeatureNotSupportedException
     {
         checkNotClosed();
         throw new SQLFeatureNotSupportedException(NO_BATCH);
     }
 
-    protected final void checkNotClosed() throws SQLException
+    protected final void checkNotClosed() throws SQLRecoverableException
     {
         if (isClosed()) throw new SQLRecoverableException(WAS_CLOSED_STMT);
     }
 
-    public void clearBatch() throws SQLException
+    public void clearBatch() throws SQLRecoverableException, SQLFeatureNotSupportedException
     {
         checkNotClosed();
         throw new SQLFeatureNotSupportedException(NO_BATCH);
     }
 
-    public void clearWarnings() throws SQLException
+    public void clearWarnings() throws SQLRecoverableException
     {
         // This implementation does not support the collection of warnings so clearing is a no-op
         // but it is still an exception to call this on a closed connection.
         checkNotClosed();
     }
 
-    public void close() throws SQLException
+    public void close()
     {
         if (connection != null)
         {
@@ -219,12 +202,12 @@ class CassandraStatement extends AbstractStatement implements Statement, Compara
         return execute(sql);
     }
 
-    public int[] executeBatch() throws SQLException
+    public int[] executeBatch() throws SQLFeatureNotSupportedException
     {
         throw new SQLFeatureNotSupportedException(NO_BATCH);
     }
 
-    public ResultSet executeQuery(String query) throws SQLException
+    public CassandraResultSet executeQuery(String query) throws SQLException
     {
         checkNotClosed();
         doExecute(query);
@@ -252,37 +235,37 @@ class CassandraStatement extends AbstractStatement implements Statement, Compara
         return executeUpdate(sql);
     }
 
-    public Connection getConnection() throws SQLException
+    public Connection getConnection() throws SQLRecoverableException
     {
         checkNotClosed();
         return (Connection) connection;
     }
 
-    public int getFetchDirection() throws SQLException
+    public int getFetchDirection() throws SQLRecoverableException
     {
         checkNotClosed();
         return fetchDirection;
     }
 
-    public int getFetchSize() throws SQLException
+    public int getFetchSize() throws SQLRecoverableException
     {
         checkNotClosed();
         return fetchSize;
     }
 
-    public int getMaxFieldSize() throws SQLException
+    public int getMaxFieldSize() throws SQLRecoverableException
     {
         checkNotClosed();
         return maxFieldSize;
     }
 
-    public int getMaxRows() throws SQLException
+    public int getMaxRows() throws SQLRecoverableException
     {
         checkNotClosed();
         return maxRows;
     }
 
-    public boolean getMoreResults() throws SQLException
+    public boolean getMoreResults() throws SQLRecoverableException
     {
         checkNotClosed();
         resetResults();
@@ -311,44 +294,44 @@ class CassandraStatement extends AbstractStatement implements Statement, Compara
         return false;
     }
 
-    public int getQueryTimeout() throws SQLException
+    public int getQueryTimeout()
     {
         // the Cassandra implementation does not support timeouts on queries
         return 0;
     }
 
-    public ResultSet getResultSet() throws SQLException
+    public CassandraResultSet getResultSet() throws SQLRecoverableException
     {
         checkNotClosed();
         return currentResultSet;
     }
 
-    public int getResultSetConcurrency() throws SQLException
+    public int getResultSetConcurrency() throws SQLRecoverableException
     {
         checkNotClosed();
         return ResultSet.CONCUR_READ_ONLY;
     }
 
-    public int getResultSetHoldability() throws SQLException
+    public int getResultSetHoldability() throws SQLRecoverableException
     {
         checkNotClosed();
         // the Cassandra implementations does not support commits so this is the closest match
         return ResultSet.HOLD_CURSORS_OVER_COMMIT;
     }
 
-    public int getResultSetType() throws SQLException
+    public int getResultSetType() throws SQLRecoverableException
     {
         checkNotClosed();
         return ResultSet.TYPE_FORWARD_ONLY;
     }
 
-    public int getUpdateCount() throws SQLException
+    public int getUpdateCount() throws SQLRecoverableException
     {
         checkNotClosed();
         return updateCount;
     }
 
-    public SQLWarning getWarnings() throws SQLException
+    public SQLWarning getWarnings() throws SQLRecoverableException
     {
         checkNotClosed();
         return null;
@@ -359,13 +342,13 @@ class CassandraStatement extends AbstractStatement implements Statement, Compara
         return connection == null;
     }
 
-    public boolean isPoolable() throws SQLException
+    public boolean isPoolable() throws SQLRecoverableException
     {
         checkNotClosed();
         return false;
     }
 
-    public boolean isWrapperFor(Class<?> iface) throws SQLException
+    public boolean isWrapperFor(Class<?> iface)
     {
         return false;
     }
@@ -376,7 +359,7 @@ class CassandraStatement extends AbstractStatement implements Statement, Compara
         updateCount = -1;
     }
 
-    public void setEscapeProcessing(boolean enable) throws SQLException
+    public void setEscapeProcessing(boolean enable) throws SQLRecoverableException
     {
         checkNotClosed();
         // the Cassandra implementation does not currently look at this
@@ -404,31 +387,31 @@ class CassandraStatement extends AbstractStatement implements Statement, Compara
         fetchSize = size;
     }
 
-    public void setMaxFieldSize(int arg0) throws SQLException
+    public void setMaxFieldSize(int arg0) throws SQLRecoverableException
     {
         checkNotClosed();
         // silently ignore this setting. always use default 0 (unlimited)
     }
 
-    public void setMaxRows(int arg0) throws SQLException
+    public void setMaxRows(int arg0) throws SQLRecoverableException
     {
         checkNotClosed();
         // silently ignore this setting. always use default 0 (unlimited)
     }
 
-    public void setPoolable(boolean poolable) throws SQLException
+    public void setPoolable(boolean poolable) throws SQLRecoverableException
     {
         checkNotClosed();
         // silently ignore any attempt to set this away from the current default (false)
     }
 
-    public void setQueryTimeout(int arg0) throws SQLException
+    public void setQueryTimeout(int arg0) throws SQLRecoverableException
     {
         checkNotClosed();
         // silently ignore any attempt to set this away from the current default (0)
     }
 
-    public <T> T unwrap(Class<T> iface) throws SQLException
+    public <T> T unwrap(Class<T> iface) throws SQLFeatureNotSupportedException
     {
         throw new SQLFeatureNotSupportedException(String.format(NO_INTERFACE, iface.getSimpleName()));
     }

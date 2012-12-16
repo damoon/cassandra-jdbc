@@ -12,6 +12,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.RowId;
 import java.sql.SQLException;
 import java.sql.SQLNonTransientException;
+import java.sql.SQLRecoverableException;
 import java.sql.SQLWarning;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -24,7 +25,9 @@ class ManagedPreparedStatement extends AbstractStatement implements PreparedStat
 	private ManagedConnection managedConnection;
 
 	private CassandraPreparedStatement preparedStatement;
-
+	
+	private CassandraResultSet resultSet;
+	
 	private boolean poolable;
 
 	ManagedPreparedStatement(PooledCassandraConnection pooledCassandraConnection, ManagedConnection managedConnection,
@@ -44,7 +47,7 @@ class ManagedPreparedStatement extends AbstractStatement implements PreparedStat
 	}
 
 	@Override
-	public ManagedConnection getConnection() throws SQLException
+	public ManagedConnection getConnection()
 	{
 		return managedConnection;
 	}
@@ -56,12 +59,16 @@ class ManagedPreparedStatement extends AbstractStatement implements PreparedStat
 	}
 
 	@Override
-	public void close() throws SQLNonTransientException
+	public void close()
 	{
 		if (preparedStatement != null)
 		{
 			pooledCassandraConnection.statementClosed(preparedStatement);
 			preparedStatement = null;
+		}
+		if (resultSet != null)
+		{
+			resultSet.close();
 		}
 	}
 
@@ -81,6 +88,38 @@ class ManagedPreparedStatement extends AbstractStatement implements PreparedStat
 	public int hashCode()
 	{
 		return preparedStatement.getCql().hashCode();
+	}
+
+	@Override
+	public int getQueryTimeout() throws SQLNonTransientException
+	{
+		checkNotClosed();
+		return preparedStatement.getQueryTimeout();
+	}
+
+	@Override
+	public boolean isWrapperFor(Class<?> arg0) throws SQLNonTransientException
+	{
+		checkNotClosed();
+		return preparedStatement.isWrapperFor(arg0);
+	}
+
+	@Override
+	public ResultSet getResultSet() throws SQLRecoverableException, SQLNonTransientException
+	{
+		checkNotClosed();
+		try
+		{
+			if (resultSet != null) {
+				resultSet.close();
+			}
+			return resultSet = preparedStatement.getResultSet();
+		}
+		catch (SQLRecoverableException sqlException)
+		{
+			pooledCassandraConnection.statementErrorOccurred(preparedStatement, sqlException);
+			throw sqlException;
+		}
 	}
 
 	// all following methods have the form
@@ -182,7 +221,10 @@ class ManagedPreparedStatement extends AbstractStatement implements PreparedStat
 		checkNotClosed();
 		try
 		{
-			return preparedStatement.executeQuery(arg0);
+			if (resultSet != null) {
+				resultSet.close();
+			}
+			return resultSet = preparedStatement.executeQuery(arg0);
 		}
 		catch (SQLException sqlException)
 		{
@@ -303,36 +345,6 @@ class ManagedPreparedStatement extends AbstractStatement implements PreparedStat
 		try
 		{
 			return preparedStatement.getMoreResults(arg0);
-		}
-		catch (SQLException sqlException)
-		{
-			pooledCassandraConnection.statementErrorOccurred(preparedStatement, sqlException);
-			throw sqlException;
-		}
-	}
-
-	@Override
-	public int getQueryTimeout() throws SQLException
-	{
-		checkNotClosed();
-		try
-		{
-			return preparedStatement.getQueryTimeout();
-		}
-		catch (SQLException sqlException)
-		{
-			pooledCassandraConnection.statementErrorOccurred(preparedStatement, sqlException);
-			throw sqlException;
-		}
-	}
-
-	@Override
-	public ResultSet getResultSet() throws SQLException
-	{
-		checkNotClosed();
-		try
-		{
-			return preparedStatement.getResultSet();
 		}
 		catch (SQLException sqlException)
 		{
@@ -507,21 +519,6 @@ class ManagedPreparedStatement extends AbstractStatement implements PreparedStat
 	}
 
 	@Override
-	public boolean isWrapperFor(Class<?> arg0) throws SQLException
-	{
-		checkNotClosed();
-		try
-		{
-			return preparedStatement.isWrapperFor(arg0);
-		}
-		catch (SQLException sqlException)
-		{
-			pooledCassandraConnection.statementErrorOccurred(preparedStatement, sqlException);
-			throw sqlException;
-		}
-	}
-
-	@Override
 	public <T> T unwrap(Class<T> arg0) throws SQLException
 	{
 		checkNotClosed();
@@ -587,7 +584,10 @@ class ManagedPreparedStatement extends AbstractStatement implements PreparedStat
 		checkNotClosed();
 		try
 		{
-			return preparedStatement.executeQuery();
+			if (resultSet != null) {
+				resultSet.close();
+			}
+			return resultSet = preparedStatement.executeQuery();
 		}
 		catch (SQLException sqlException)
 		{

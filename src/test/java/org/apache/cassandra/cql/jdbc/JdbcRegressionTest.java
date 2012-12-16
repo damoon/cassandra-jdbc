@@ -239,8 +239,8 @@ public class JdbcRegressionTest
     @Test
     public void isNotValid() throws Exception
     {
-        PreparedStatement currentStatement = ((CassandraConnection) con).isAlive;
-        PreparedStatement mockedStatement = mock(PreparedStatement.class);
+    	CassandraPreparedStatement currentStatement = ((CassandraConnection) con).isAlive;
+        CassandraPreparedStatement mockedStatement = mock(CassandraPreparedStatement.class);
         when(mockedStatement.executeQuery()).thenThrow(new SQLException("A mocked ERROR"));
         ((CassandraConnection) con).isAlive = mockedStatement;
         assert con.isValid(5) == false;

@@ -68,7 +68,7 @@ public class CassandraDriver implements Driver
     /**
      * Method to validate whether provided connection url matches with pattern or not.
      */
-    public boolean acceptsURL(String url) throws SQLException
+    public boolean acceptsURL(String url)
     {
         return url.startsWith(PROTOCOL);
     }
@@ -116,7 +116,7 @@ public class CassandraDriver implements Driver
     /**
      * Returns default driver property info object.
      */
-    public DriverPropertyInfo[] getPropertyInfo(String url, Properties props) throws SQLException
+    public DriverPropertyInfo[] getPropertyInfo(String url, Properties props)
     {
         if (props == null) props = new Properties();
 

@@ -29,7 +29,7 @@ public interface CassandraResultSetExtras extends ResultSet
     /**
      * @return the current row key
      */
-    public byte[] getKey()throws SQLException;;
+    public byte[] getKey();
     
     /** @return a BigInteger value for the given column offset*/
     public BigInteger getBigInteger(int i) throws SQLException;

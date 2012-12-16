@@ -41,7 +41,7 @@ import org.slf4j.LoggerFactory;
 
 public class PooledCassandraDataSource implements DataSource, ConnectionEventListener
 {
-	static final int CONNECTION_IS_VALID_TIMEOUT = 5;
+	static final int CONNECTION_IS_VALID_TIMEOUT = 1;
 
 	private static final int MIN_POOL_SIZE = 4;
 
@@ -112,14 +112,7 @@ public class PooledCassandraDataSource implements DataSource, ConnectionEventLis
 		}
 		else
 		{
-			try
-			{
-				connection.close();
-			}
-			catch (SQLException e)
-			{
-				logger.error(e.getLocalizedMessage());
-			}
+			connection.close();
 		}
 	}
 
@@ -129,7 +122,7 @@ public class PooledCassandraDataSource implements DataSource, ConnectionEventLis
 		{
 			return connection.getOuthandedCount() < LIMIT_OUTHANDINGS
 					&& getLifetime(connection) < MAX_MILLIS_AGE
-					&& connection.getConnection().isValid(1);
+					&& connection.getConnection().isValid(CONNECTION_IS_VALID_TIMEOUT);
 		}
 		catch (SQLTimeoutException e)
 		{
@@ -148,25 +141,10 @@ public class PooledCassandraDataSource implements DataSource, ConnectionEventLis
 	{
 		PooledCassandraConnection connection = (PooledCassandraConnection) event.getSource();
 
-		try
+		if (!(event.getSQLException() instanceof SQLRecoverableException) || !isStillUseable(connection))
 		{
-			if (!(event.getSQLException() instanceof SQLRecoverableException)
-					|| !connection.getConnection().isValid(CONNECTION_IS_VALID_TIMEOUT))
-			{
-				try
-				{
-					connection.getConnection().close();
-				}
-				catch (SQLException e)
-				{
-					logger.error(e.getLocalizedMessage());
-				}
-				usedConnections.remove(connection);
-			}
-		}
-		catch (SQLTimeoutException e)
-		{
-			logger.error(e.getLocalizedMessage());
+			connection.getConnection().close();
+			usedConnections.remove(connection);
 		}
 	}
 
@@ -176,9 +154,9 @@ public class PooledCassandraDataSource implements DataSource, ConnectionEventLis
 		closePooledConnections(freeConnections);
 	}
 
-	private void closePooledConnections(Set<PooledCassandraConnection> usedConnections2)
+	private void closePooledConnections(Set<PooledCassandraConnection> usedConnections)
 	{
-		for (PooledConnection connection : usedConnections2)
+		for (PooledConnection connection : usedConnections)
 		{
 			try
 			{
