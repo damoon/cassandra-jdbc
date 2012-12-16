@@ -31,6 +31,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import org.apache.cassandra.cql.ConnectionDetails;
+import org.apache.cassandra.thrift.Cassandra.Client;
+import org.apache.thrift.TException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -239,12 +241,12 @@ public class JdbcRegressionTest
     @Test
     public void isNotValid() throws Exception
     {
-    	CassandraPreparedStatement currentStatement = ((CassandraConnection) con).isAlive;
-        CassandraPreparedStatement mockedStatement = mock(CassandraPreparedStatement.class);
-        when(mockedStatement.executeQuery()).thenThrow(new SQLException("A mocked ERROR"));
-        ((CassandraConnection) con).isAlive = mockedStatement;
+    	Client currentClient = ((CassandraConnection) con).client;
+    	Client mockedClient = mock(Client.class);
+        when(mockedClient.describe_version()).thenThrow(new TException("A mocked ERROR"));
+        ((CassandraConnection) con).client = mockedClient;
         assert con.isValid(5) == false;
-        ((CassandraConnection) con).isAlive = currentStatement;
+        ((CassandraConnection) con).client = currentClient;
     }
     
     

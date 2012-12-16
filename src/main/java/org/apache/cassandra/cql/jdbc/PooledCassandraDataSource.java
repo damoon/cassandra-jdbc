@@ -50,14 +50,14 @@ public class PooledCassandraDataSource implements DataSource, ConnectionEventLis
 
 	private static final Logger logger = LoggerFactory.getLogger(PooledCassandraDataSource.class);
 
-	private static final int LIMIT_CHECKOUTS = 512;
+	private static final int MAX_CHECKOUTS = 512;
 
 	// 6 minutes
 	private static final long MAX_MILLIS_AGE = 360000;
 	
 	private LinkedBlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<Runnable>();
 	
-	private ThreadPoolExecutor threadPool = new ThreadPoolExecutor(24, 24, 60, TimeUnit.SECONDS, workQueue);
+	private ThreadPoolExecutor threadPool = new ThreadPoolExecutor(6, 6, 60, TimeUnit.SECONDS, workQueue);
 
 	private CassandraDataSource dataSource;
 
@@ -274,7 +274,7 @@ public class PooledCassandraDataSource implements DataSource, ConnectionEventLis
 	{
 		try
 		{
-			return connection.getOuthandedCount() < LIMIT_CHECKOUTS
+			return connection.getOuthandedCount() < MAX_CHECKOUTS
 					&& getLifetime(connection) < MAX_MILLIS_AGE
 					&& connection.getConnection().isValid(CONNECTION_IS_VALID_TIMEOUT);
 		}

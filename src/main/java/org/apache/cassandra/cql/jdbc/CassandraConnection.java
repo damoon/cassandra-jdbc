@@ -49,9 +49,6 @@ class CassandraConnection extends AbstractConnection implements Connection
 {
 
     private static final Logger logger = LoggerFactory.getLogger(CassandraConnection.class);
-
-    static final String IS_VALID_CQLQUERY_2_0_0 = "SELECT COUNT(1) FROM system.Versions WHERE component = 'cql';";
-    static final String IS_VALID_CQLQUERY_3_0_0 = "SELECT COUNT(1) FROM system.\"Versions\" WHERE component = 'cql';";
     
     public static final int DB_MAJOR_VERSION = 1;
     public static final int DB_MINOR_VERSION = 1;
@@ -79,7 +76,7 @@ class CassandraConnection extends AbstractConnection implements Connection
      */
     private Set<CassandraStatement> statements = new ConcurrentSkipListSet<CassandraStatement>();
 
-    private Cassandra.Client client;
+    protected Cassandra.Client client;
     private TTransport transport;
 
     protected long timeOfLastFailure = 0;
@@ -90,8 +87,6 @@ class CassandraConnection extends AbstractConnection implements Connection
     ColumnDecoder decoder;
 
     private TSocket socket;
-    
-    CassandraPreparedStatement isAlive = null;
     
     private String currentCqlVersion;
 
@@ -310,19 +305,13 @@ class CassandraConnection extends AbstractConnection implements Connection
         
         try
         {
-            if (isAlive == null)
-            {
-                isAlive = prepareStatement(currentCqlVersion == "2.0.0" ? IS_VALID_CQLQUERY_2_0_0 : IS_VALID_CQLQUERY_3_0_0);
-                statements.add(isAlive);
-            }
-            // the result is not important
-            isAlive.executeQuery().close();
+        	client.describe_version();
             return true;
         }
-        catch (SQLException e)
-        {
+		catch (TException e)
+		{
         	return false;
-        }
+		}
         finally
         {
             // reset timeout
