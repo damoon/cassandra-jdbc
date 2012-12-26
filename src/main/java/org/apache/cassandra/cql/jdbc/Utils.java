@@ -28,6 +28,7 @@ import java.nio.ByteBuffer;
 import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
 import java.sql.SQLSyntaxErrorException;
+import java.util.List;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -99,6 +100,7 @@ class Utils
     protected static final String BAD_KEYSPACE = "Keyspace names must be composed of alphanumerics and underscores (parsed: '%s')";
     protected static final String URI_IS_SIMPLE = "Connection url may only include host, port, and keyspace and version option, e.g., jdbc:cassandra://localhost:9170/Keyspace1?version=2.0.0";
     protected static final String NOT_OPTION = "Connection url only support the 'version' option";
+    protected static final String FORWARD_ONLY = "Can not position cursor with a type of TYPE_FORWARD_ONLY";
 
     protected static final Logger logger = LoggerFactory.getLogger(Utils.class);
 
@@ -276,5 +278,26 @@ class Utils
         Matcher isUpdate = UPDATE_PATTERN.matcher(cql);
         if (isUpdate.matches()) cf = isUpdate.group(1);
         return cf;
+    }
+    
+    // Utility method
+    /**
+     * Utility method to pack bytes into a byte buffer from a list of ByteBuffers 
+     * 
+     * @param buffers A list of ByteBuffers representing the elements to pack
+     * @param elements The count of the elements
+     * @param size The size in bytes of the result buffer
+     * @return The packed ByteBuffer
+     */
+    protected static ByteBuffer pack(List<ByteBuffer> buffers, int elements, int size)
+    {
+        ByteBuffer result = ByteBuffer.allocate(2 + size);
+        result.putShort((short)elements);
+        for (ByteBuffer bb : buffers)
+        {
+            result.putShort((short)bb.remaining());
+            result.put(bb.duplicate());
+        }
+        return (ByteBuffer)result.flip();
     }
 }

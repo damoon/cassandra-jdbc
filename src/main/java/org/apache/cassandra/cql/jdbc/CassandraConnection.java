@@ -51,9 +51,9 @@ class CassandraConnection extends AbstractConnection implements Connection
     private static final Logger logger = LoggerFactory.getLogger(CassandraConnection.class);
     
     public static final int DB_MAJOR_VERSION = 1;
-    public static final int DB_MINOR_VERSION = 1;
+    public static final int DB_MINOR_VERSION = 2;
     public static final String DB_PRODUCT_NAME = "Cassandra";
-    public static final String DEFAULT_CQL_VERSION = "2.0.0";
+    public static final String DEFAULT_CQL_VERSION = "3.0.0";
 
     public static Compression defaultCompression = Compression.GZIP;
 
@@ -84,12 +84,12 @@ class CassandraConnection extends AbstractConnection implements Connection
     protected String username = null;
     protected String url = null;
     String currentKeyspace;
+    String cluster;
+    int majorCqlVersion;
     ColumnDecoder decoder;
 
     private TSocket socket;
     
-    private String currentCqlVersion;
-
     /**
      * Instantiates a new CassandraConnection.
      */
@@ -105,13 +105,17 @@ class CassandraConnection extends AbstractConnection implements Connection
             currentKeyspace = props.getProperty(TAG_DATABASE_NAME,"system");
             username = props.getProperty(TAG_USER);
             String password = props.getProperty(TAG_PASSWORD);
-            String version = props.getProperty(TAG_CQL_VERSION);
+            String version = props.getProperty(TAG_CQL_VERSION,DEFAULT_CQL_VERSION);
+            connectionProps.setProperty(TAG_ACTIVE_CQL_VERSION, version);
+            majorCqlVersion = getMajor(version);
 
             socket = new TSocket(host, port);
             transport = new TFramedTransport(socket);
             TProtocol protocol = new TBinaryProtocol(transport);
             client = new Cassandra.Client(protocol);
             socket.open();
+            
+            cluster = client.describe_cluster_name();
 
             if (username != null)
             {
@@ -122,10 +126,10 @@ class CassandraConnection extends AbstractConnection implements Connection
                 client.login(areq);
             }
             
-            currentCqlVersion = (version==null) ? DEFAULT_CQL_VERSION: version;
-
-            client.set_cql_version(currentCqlVersion);
-            connectionProps.setProperty(TAG_ACTIVE_CQL_VERSION, currentCqlVersion);
+            if (majorCqlVersion > 2)
+            {
+                client.set_cql_version(version);
+            }
             
             decoder = new ColumnDecoder(client.describe_keyspaces());
                     
@@ -133,8 +137,8 @@ class CassandraConnection extends AbstractConnection implements Connection
 
             client.set_keyspace(currentKeyspace);
 
-            Object[] args = {host, port,currentKeyspace, currentCqlVersion};
-            logger.info("Connected to {}:{} using Keyspace {} and CQL version {}",args);
+            Object[] args = {host, port,currentKeyspace,cluster,version};
+            logger.debug("Connected to {}:{} in Cluster '{}' using Keyspace '{}' and CQL version '{}'",args);                       
         }
         catch (InvalidRequestException e)
         {
@@ -153,8 +157,24 @@ class CassandraConnection extends AbstractConnection implements Connection
             throw new SQLInvalidAuthorizationSpecException(e);
         }
     }
-
-    private final void checkNotClosed() throws SQLNonTransientConnectionException
+    
+    // get the Major portion of a string like : Major.minor.patch where 2 is the default
+    private final int getMajor(String version)
+    {
+        int major = 0;
+        String[] parts = version.split("\\.");
+        try
+        {
+            major = Integer.valueOf(parts[0]);
+        }
+        catch (Exception e)
+        {
+            major = 2;
+        }
+        return major;
+    }
+    
+	private final void checkNotClosed() throws SQLNonTransientConnectionException
     {
         if (isClosed()) throw new SQLNonTransientConnectionException(WAS_CLOSED_CON);
     }
@@ -236,10 +256,8 @@ class CassandraConnection extends AbstractConnection implements Connection
 
     public String getCatalog() throws SQLNonTransientConnectionException
     {
-        // This implementation does not support the catalog names so null is always returned if the connection is open.
-        // but it is still an exception to call this on a closed connection.
         checkNotClosed();
-        return null;
+        return cluster;
     }
 
     public Properties getClientInfo() throws SQLNonTransientConnectionException
@@ -299,7 +317,7 @@ class CassandraConnection extends AbstractConnection implements Connection
     	{
     		return false;
     	}
-    	
+
         // set timeout
         socket.setTimeout(timeout * 1000);
         
@@ -436,7 +454,8 @@ class CassandraConnection extends AbstractConnection implements Connection
 
         try
         {
-            return client.execute_cql_query(Utils.compressQuery(queryStr, compression), compression);
+            if (majorCqlVersion==3) return client.execute_cql3_query(Utils.compressQuery(queryStr, compression), compression, ConsistencyLevel.ONE);
+            else                    return client.execute_cql_query(Utils.compressQuery(queryStr, compression), compression);
         }
         catch (TException error)
         {
@@ -468,7 +487,8 @@ class CassandraConnection extends AbstractConnection implements Connection
     {
         try
         {
-            return client.execute_prepared_cql_query(itemId, values);
+            if (majorCqlVersion==3) return client.execute_prepared_cql3_query(itemId, values, ConsistencyLevel.ONE);
+            else                    return client.execute_prepared_cql_query(itemId, values);
         }
         catch (TException error)
         {
@@ -482,7 +502,8 @@ class CassandraConnection extends AbstractConnection implements Connection
     {
         try
         {
-            return client.prepare_cql_query(Utils.compressQuery(queryStr, compression), compression);
+            if (majorCqlVersion==3) return client.prepare_cql3_query(Utils.compressQuery(queryStr, compression), compression);
+            else                    return client.prepare_cql_query(Utils.compressQuery(queryStr, compression), compression);
         }
         catch (TException error)
         {
@@ -537,6 +558,5 @@ class CassandraConnection extends AbstractConnection implements Connection
         builder.append(connectionProps);
         builder.append("]");
         return builder.toString();
-    }
+    }    
 }
-

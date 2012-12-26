@@ -21,6 +21,7 @@
 
 package org.apache.cassandra.cql.jdbc;
 
+
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
@@ -34,7 +35,7 @@ public class SpashScreenTest
 {
     private static final String HOST = System.getProperty("host", ConnectionDetails.getHost());
     private static final int PORT = Integer.parseInt(System.getProperty("port", ConnectionDetails.getPort()+""));
-    private static final String KEYSPACE = "TestKS";
+    private static final String KEYSPACE = "testks";
     
     private static java.sql.Connection con = null;
 
@@ -42,7 +43,7 @@ public class SpashScreenTest
     public static void setUpBeforeClass() throws Exception
     {
         Class.forName("org.apache.cassandra.cql.jdbc.CassandraDriver");
-        con = DriverManager.getConnection(String.format("jdbc:cassandra://%s:%d/%s",HOST,PORT,"system"));
+        con = DriverManager.getConnection(String.format("jdbc:cassandra://%s:%d/%s?version=3.0.0",HOST,PORT,"system"));
         Statement stmt = con.createStatement();
 
         // Drop Keyspace
@@ -52,7 +53,7 @@ public class SpashScreenTest
         catch (Exception e){/* Exception on DROP is OK */}
         
         // Create KeySpace
-        String createKS = String.format("CREATE KEYSPACE %s WITH strategy_class = SimpleStrategy AND strategy_options:replication_factor = 1;",KEYSPACE);
+        String createKS = String.format("CREATE KEYSPACE \"%s\" WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};",KEYSPACE);
         stmt = con.createStatement();
         stmt.execute(createKS);
         
@@ -62,7 +63,7 @@ public class SpashScreenTest
         
                
         // Create the target Column family
-        String create = "CREATE COLUMNFAMILY Test (KEY text PRIMARY KEY) WITH comparator = ascii AND default_validation = bigint;";
+        String create = "CREATE COLUMNFAMILY Test (KEY text PRIMARY KEY, a bigint, b bigint) ;";
         stmt = con.createStatement();
         stmt.execute(create);
         stmt.close();
@@ -85,14 +86,14 @@ public class SpashScreenTest
         String query = "UPDATE Test SET a=?, b=? WHERE KEY=?";
         PreparedStatement statement = con.prepareStatement(query);
         try {
-            statement.setLong(1, 100);
-            statement.setLong(2, 1000);
-            statement.setString(3, "key0");
+        statement.setLong(1, 100);
+        statement.setLong(2, 1000);
+        statement.setString(3, "key0");
 
-            statement.executeUpdate();
+        statement.executeUpdate();
         }
         finally {
-            statement.close();
-        }
+        statement.close();
     }
+}
 }

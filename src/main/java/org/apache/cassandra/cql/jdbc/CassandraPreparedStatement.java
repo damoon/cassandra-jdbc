@@ -1,23 +1,23 @@
 /*
  * 
  * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
+ * or more contributor license agreements. See the NOTICE file
  * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
+ * regarding copyright ownership. The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * with the License. You may obtain a copy of the License at
  * 
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  * 
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
+ * KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations
  * under the License.
- * 
  */
+
 package org.apache.cassandra.cql.jdbc;
 
 import static org.apache.cassandra.cql.jdbc.Utils.NO_RESULTSET;
@@ -64,16 +64,15 @@ import org.slf4j.LoggerFactory;
 class CassandraPreparedStatement extends CassandraStatement implements PreparedStatement
 {
     private static final Logger LOG = LoggerFactory.getLogger(CassandraPreparedStatement.class);
-    
+
     /** the key token passed back from server-side to identify the prepared statement */
     private int itemId;
-    
-    /** the count of bound variable markers (?) encountered in the parse o the CQL server-side */    
+
+    /** the count of bound variable markers (?) encountered in the parse o the CQL server-side */
     private int count;
     
-    /** a Map of the current bound values encountered in setXXX methods */    
-    private Map<Integer,ByteBuffer> bindValues = new LinkedHashMap<Integer,ByteBuffer>();
-
+    /** a Map of the current bound values encountered in setXXX methods */
+    private Map<Integer, ByteBuffer> bindValues = new LinkedHashMap<Integer, ByteBuffer>();
     
     CassandraPreparedStatement(CassandraConnection con, String cql, CqlPreparedResult result)
     {
@@ -82,36 +81,38 @@ class CassandraPreparedStatement extends CassandraStatement implements PreparedS
         itemId = result.itemId;
         count = result.count;
     }
-    
+
     String getCql()
     {
-    	return cql;
+        return cql;
     }
 
     private final void checkIndex(int index) throws SQLRecoverableException
     {
-        if (index > count ) throw new SQLRecoverableException(String.format("the column index : %d is greater than the count of bound variable markers in the CQL: %d", index,count));
-        if (index < 1 ) throw new SQLRecoverableException(String.format("the column index must be a positive number : %d", index));
+        if (index > count) throw new SQLRecoverableException(String.format("the column index : %d is greater than the count of bound variable markers in the CQL: %d",
+            index,
+            count));
+        if (index < 1) throw new SQLRecoverableException(String.format("the column index must be a positive number : %d", index));
     }
     
     private List<ByteBuffer> getBindValues() throws SQLRecoverableException
     {
         List<ByteBuffer> values = new ArrayList<ByteBuffer>();
-//        System.out.println("bindValues.size() = "+bindValues.size());
-//        System.out.println("count             = "+count);
-        if (bindValues.size() != count )
-            throw new SQLRecoverableException(String.format("the number of bound variables: %d must match the count of bound variable markers in the CQL: %d", bindValues.size(),count));
+        if (bindValues.size() != count) throw new SQLRecoverableException(
+            String.format("the number of bound variables: %d must match the count of bound variable markers in the CQL: %d",
+            bindValues.size(),
+            count));
 
-        for (int i = 1; i <= count ; i++)
+        for (int i = 1; i <= count; i++)
         {
             ByteBuffer value = bindValues.get(i);
-            if (value==null) throw new SQLRecoverableException(String.format("the bound value for index: %d was not set", i));
-           values.add(value);
+            if (value == null) throw new SQLRecoverableException(String.format("the bound value for index: %d was not set", i));
+            values.add(value);
         }
         return values;
     }
 
-    
+
     public void close()
     {
         if (connection != null)
@@ -120,20 +121,19 @@ class CassandraPreparedStatement extends CassandraStatement implements PreparedS
             connection = null;
         }
     }
-        
+
     private void doExecute() throws SQLException
     {
-        if (LOG.isTraceEnabled()) LOG.trace("CQL: "+ cql);
-       try
+        if (LOG.isTraceEnabled()) LOG.trace("CQL: " + cql);
+        try
         {
             resetResults();
             CqlResult result = connection.execute(itemId, getBindValues());
-            String keyspace = connection.currentKeyspace;
 
             switch (result.getType())
             {
                 case ROWS:
-                    currentResultSet = new CassandraResultSet(this, result, keyspace);
+                    currentResultSet = new CassandraResultSet(this, result);
                     break;
                 case INT:
                     updateCount = result.getNum();
@@ -145,7 +145,7 @@ class CassandraPreparedStatement extends CassandraStatement implements PreparedS
         }
         catch (InvalidRequestException e)
         {
-            throw new SQLSyntaxErrorException(e.getWhy());
+            throw new SQLSyntaxErrorException(e.getWhy() + "\n'" + cql + "'", e);
         }
         catch (UnavailableException e)
         {
@@ -153,7 +153,7 @@ class CassandraPreparedStatement extends CassandraStatement implements PreparedS
         }
         catch (TimedOutException e)
         {
-            throw new SQLTransientConnectionException(e.getMessage());
+            throw new SQLTransientConnectionException(e);
         }
         catch (SchemaDisagreementException e)
         {
@@ -161,10 +161,10 @@ class CassandraPreparedStatement extends CassandraStatement implements PreparedS
         }
         catch (TException e)
         {
-            throw new SQLNonTransientConnectionException(e.getMessage());
+            throw new SQLNonTransientConnectionException(e);
         }
     }
-    
+
     public void addBatch() throws SQLException
     {
         throw new SQLFeatureNotSupportedException(NOT_SUPPORTED);
@@ -220,7 +220,7 @@ class CassandraPreparedStatement extends CassandraStatement implements PreparedS
     {
         checkNotClosed();
         checkIndex(parameterIndex);
-        bindValues.put(parameterIndex, JdbcDecimal.instance.decompose(decimal));
+        bindValues.put(parameterIndex, decimal == null ? ByteBufferUtil.EMPTY_BYTE_BUFFER : JdbcDecimal.instance.decompose(decimal));
     }
 
 
@@ -244,7 +244,7 @@ class CassandraPreparedStatement extends CassandraStatement implements PreparedS
     {
         checkNotClosed();
         checkIndex(parameterIndex);
-        bindValues.put(parameterIndex, ByteBuffer.wrap(bytes));
+        bindValues.put(parameterIndex, bytes == null ? ByteBufferUtil.EMPTY_BYTE_BUFFER : ByteBuffer.wrap(bytes));
     }
 
 
@@ -253,14 +253,14 @@ class CassandraPreparedStatement extends CassandraStatement implements PreparedS
         checkNotClosed();
         checkIndex(parameterIndex);
         // date type data is handled as an 8 byte Long value of milliseconds since the epoch (handled in decompose() )
-        bindValues.put(parameterIndex, JdbcDate.instance.decompose(value));
+        bindValues.put(parameterIndex, value == null ? ByteBufferUtil.EMPTY_BYTE_BUFFER : JdbcDate.instance.decompose(value));
     }
 
 
     public void setDate(int parameterIndex, Date date, Calendar cal) throws SQLException
     {
         // silently ignore the calendar argument it is not useful for the Cassandra implementation
-        setDate(parameterIndex,date);
+        setDate(parameterIndex, date);
     }
 
 
@@ -299,7 +299,7 @@ class CassandraPreparedStatement extends CassandraStatement implements PreparedS
     public void setNString(int parameterIndex, String value) throws SQLException
     {
         // treat like a String
-        setString(parameterIndex,value);
+        setString(parameterIndex, value);
     }
 
 
@@ -315,30 +315,30 @@ class CassandraPreparedStatement extends CassandraStatement implements PreparedS
     public void setNull(int parameterIndex, int sqlType, String typeName) throws SQLException
     {
         // silently ignore type and type name for cassandra... just store an empty BB
-        setNull(parameterIndex,sqlType);
+        setNull(parameterIndex, sqlType);
     }
 
 
     public void setObject(int parameterIndex, Object object) throws SQLException
     {
         // For now all objects are forced to String type
-        setObject(parameterIndex,object,Types.VARCHAR,0);
+        setObject(parameterIndex, object, Types.VARCHAR, 0);
     }
-    
+
     public void setObject(int parameterIndex, Object object, int targetSqlType) throws SQLException
     {
-        setObject(parameterIndex,object,targetSqlType,0);
+        setObject(parameterIndex, object, targetSqlType, 0);
     }
 
     public final void setObject(int parameterIndex, Object object, int targetSqlType, int scaleOrLength) throws SQLException
     {
         checkNotClosed();
         checkIndex(parameterIndex);
-        
+
         ByteBuffer variable = HandleObjects.makeBytes(object, targetSqlType, scaleOrLength);
-        
-        if (variable==null) throw new SQLNonTransientException("Problem mapping object to JDBC Type");
-        
+
+        if (variable == null) throw new SQLNonTransientException("Problem mapping object to JDBC Type");
+
         bindValues.put(parameterIndex, variable);
     }
 
@@ -362,7 +362,7 @@ class CassandraPreparedStatement extends CassandraStatement implements PreparedS
     {
         checkNotClosed();
         checkIndex(parameterIndex);
-        bindValues.put(parameterIndex, ByteBufferUtil.bytes(value));
+        bindValues.put(parameterIndex, value == null ? ByteBufferUtil.EMPTY_BYTE_BUFFER : ByteBufferUtil.bytes(value));
     }
 
 
@@ -371,14 +371,15 @@ class CassandraPreparedStatement extends CassandraStatement implements PreparedS
         checkNotClosed();
         checkIndex(parameterIndex);
         // time type data is handled as an 8 byte Long value of milliseconds since the epoch
-        bindValues.put(parameterIndex, JdbcLong.instance.decompose(Long.valueOf(value.getTime())));
+        bindValues.put(parameterIndex,
+            value == null ? ByteBufferUtil.EMPTY_BYTE_BUFFER : JdbcLong.instance.decompose(Long.valueOf(value.getTime())));
     }
 
 
     public void setTime(int parameterIndex, Time value, Calendar cal) throws SQLException
     {
         // silently ignore the calendar argument it is not useful for the Cassandra implementation
-        setTime(parameterIndex,value);
+        setTime(parameterIndex, value);
     }
 
 
@@ -387,14 +388,15 @@ class CassandraPreparedStatement extends CassandraStatement implements PreparedS
         checkNotClosed();
         checkIndex(parameterIndex);
         // timestamp type data is handled as an 8 byte Long value of milliseconds since the epoch. Nanos are not supported and are ignored
-        bindValues.put(parameterIndex, JdbcLong.instance.decompose(Long.valueOf(value.getTime())));
+        bindValues.put(parameterIndex,
+            value == null ? ByteBufferUtil.EMPTY_BYTE_BUFFER : JdbcLong.instance.decompose(Long.valueOf(value.getTime())));
     }
 
 
     public void setTimestamp(int parameterIndex, Timestamp value, Calendar cal) throws SQLException
     {
         // silently ignore the calendar argument it is not useful for the Cassandra implementation
-        setTimestamp(parameterIndex,value);
+        setTimestamp(parameterIndex, value);
     }
 
 
@@ -404,6 +406,6 @@ class CassandraPreparedStatement extends CassandraStatement implements PreparedS
         checkIndex(parameterIndex);
         // URl type data is handled as an string
         String url = value.toString();
-        bindValues.put(parameterIndex, ByteBufferUtil.bytes(url));
+        bindValues.put(parameterIndex, value == null ? ByteBufferUtil.EMPTY_BYTE_BUFFER : ByteBufferUtil.bytes(url));
     }
 }

@@ -23,6 +23,7 @@ package org.apache.cassandra.cql.jdbc;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
+import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -41,7 +42,8 @@ public class JdbcRegressionTest
 {
     private static final String HOST = System.getProperty("host", ConnectionDetails.getHost());
     private static final int PORT = Integer.parseInt(System.getProperty("port", ConnectionDetails.getPort()+""));
-    private static final String KEYSPACE = "TestKS";
+    private static final String KEYSPACE = "testks";
+//    private static final String CQLV3 = "3.0.0";
       
     private static java.sql.Connection con = null;
     
@@ -57,27 +59,27 @@ public class JdbcRegressionTest
         Statement stmt = con.createStatement();
         
         // Drop Keyspace
-        String dropKS = String.format("DROP KEYSPACE %s;",KEYSPACE);
+        String dropKS = String.format("DROP KEYSPACE \"%s\";",KEYSPACE);
         
         try { stmt.execute(dropKS);}
         catch (Exception e){/* Exception on DROP is OK */}
 
         // Create KeySpace
-        String createKS = String.format("CREATE KEYSPACE %s WITH strategy_class = SimpleStrategy AND strategy_options:replication_factor = 1;",KEYSPACE);
+        String createKS = String.format("CREATE KEYSPACE \"%s\" WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};",KEYSPACE);
         System.out.println("createKS = '"+createKS+"'");
         stmt = con.createStatement();
         stmt.execute("USE system;");
         stmt.execute(createKS);
         
         // Use Keyspace
-        String useKS = String.format("USE %s;",KEYSPACE);
+        String useKS = String.format("USE \"%s\";",KEYSPACE);
         stmt.execute(useKS);
         
         // Create the target Column family
-        String createCF = "CREATE COLUMNFAMILY RegressionTest (keyname text PRIMARY KEY," 
-                        + "bValue boolean, "
-                        + "iValue int "
-                        + ") WITH comparator = ascii AND default_validation = bigint;";
+        String createCF = "CREATE COLUMNFAMILY regressiontest (keyname text PRIMARY KEY," 
+                        + " bValue boolean,"
+                        + " iValue int"
+                        + ");";
         
         
         stmt.execute(createCF);
@@ -101,23 +103,20 @@ public class JdbcRegressionTest
     @Test
     public void testIssue10() throws Exception
     {
-        String insert = "INSERT INTO RegressionTest (keyname,bValue,iValue) VALUES( 'key0',true, 2000);";
+        String insert = "INSERT INTO regressiontest (keyname,bValue,iValue) VALUES( 'key0','true', 2000);";
         Statement statement = con.createStatement();
 
         statement.executeUpdate(insert);
         statement.close();
         
         statement = con.createStatement();
-        ResultSet result = statement.executeQuery("SELECT bValue,notThere,iValue FROM RegressionTest WHERE keyname=key0;");
+        ResultSet result = statement.executeQuery("SELECT bValue,iValue FROM regressiontest WHERE keyname='key0';");
         result.next();
         
         boolean b = result.getBoolean(1);
         assertTrue(b);
         
-        long l = result.getLong("notThere");
-        assertEquals(0,l);
-        
-        int i = result.getInt(3);
+        int i = result.getInt(2);
         assertEquals(2000, i);
    }
 
@@ -141,18 +140,18 @@ public class JdbcRegressionTest
     {
        Statement statement = con.createStatement();
 
-       String truncate = "TRUNCATE RegressionTest;";
+       String truncate = "TRUNCATE regressiontest;";
        statement.execute(truncate);
        
-       String insert1 = "INSERT INTO RegressionTest (keyname,bValue,iValue) VALUES( 'key0',true, 2000);";
+       String insert1 = "INSERT INTO regressiontest (keyname,bValue,iValue) VALUES( 'key0','true', 2000);";
        statement.executeUpdate(insert1);
        
-       String insert2 = "INSERT INTO RegressionTest (keyname,bValue) VALUES( 'key1',false);";
+       String insert2 = "INSERT INTO regressiontest (keyname,bValue) VALUES( 'key1','false');";
        statement.executeUpdate(insert2);
        
        
        
-       String select = "SELECT * from RegressionTest;";
+       String select = "SELECT * from regressiontest;";
        
        ResultSet result = statement.executeQuery(select);
        
@@ -191,7 +190,7 @@ public class JdbcRegressionTest
         // Create the target Column family
         String createCF = "CREATE COLUMNFAMILY t33 (k int PRIMARY KEY," 
                         + "c text "
-                        + ") WITH comparator = ascii AND default_validation = text;";        
+                        + ") ;";        
         
         stmt.execute(createCF);
         stmt.close();
@@ -225,11 +224,41 @@ public class JdbcRegressionTest
             System.out.println();
         }
    }
-    
+
+    @Test
+    public void testIssue38() throws Exception
+    {
+        DatabaseMetaData md = con.getMetaData();
+        System.out.println();
+        System.out.println("Test Issue #38");
+        System.out.println("--------------");
+        System.out.println("Driver Version :   " + md.getDriverVersion());
+        System.out.println("DB Version     :   " + md.getDatabaseProductVersion());
+        System.out.println("Catalog term   :   " + md.getCatalogTerm());
+        System.out.println("Catalog        :   " + con.getCatalog());
+        System.out.println("Schema term    :   " + md.getSchemaTerm());
+        
+        // test catching exception for beforeFirst() and afterLast()
+        Statement stmt = con.createStatement();
+
+        ResultSet result = stmt.executeQuery("SELECT * FROM t33;");
+        
+        try
+        {
+            result.beforeFirst();
+        }
+        catch (Exception e)
+        {
+            System.out.println();
+            System.out.println("beforeFirst() test -> "+ e);
+        }
+        
+}
+
     @Test
     public void isValid() throws Exception
     {
-    	assert con.isValid(3);
+//    	assert con.isValid(3);
     }
     
     @Test(expected=SQLException.class)
@@ -258,4 +287,3 @@ public class JdbcRegressionTest
         return sb.toString();
     }
 }
-

@@ -27,15 +27,19 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.RowIdLifetime;
+import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLSyntaxErrorException;
 
 class CassandraDatabaseMetaData implements DatabaseMetaData
 {
     private CassandraConnection connection;
+    private CassandraStatement statement;
     
     public CassandraDatabaseMetaData(CassandraConnection connection)
     {
         this.connection = connection;
+        this.statement = new CassandraStatement(connection);
     }
     
     public boolean isWrapperFor(Class<?> iface)
@@ -101,25 +105,25 @@ class CassandraDatabaseMetaData implements DatabaseMetaData
 
     public String getCatalogTerm()
     {
-        return "";
+        return "Cluster";
     }
 
-    public ResultSet getCatalogs()
+    public CassandraResultSet getCatalogs() throws SQLException
+    {
+    	return MetadataResultSets.instance.makeCatalogs(statement);
+    }
+
+    public CassandraResultSet getClientInfoProperties()
     {
         return new CassandraResultSet();
     }
 
-    public ResultSet getClientInfoProperties()
+    public CassandraResultSet getColumnPrivileges(String arg0, String arg1, String arg2, String arg3)
     {
         return new CassandraResultSet();
     }
 
-    public ResultSet getColumnPrivileges(String arg0, String arg1, String arg2, String arg3)
-    {
-        return new CassandraResultSet();
-    }
-
-    public ResultSet getColumns(String arg0, String arg1, String arg2, String arg3)
+    public CassandraResultSet getColumns(String arg0, String arg1, String arg2, String arg3)
     {
         return new CassandraResultSet();
     }
@@ -129,7 +133,7 @@ class CassandraDatabaseMetaData implements DatabaseMetaData
         return connection;
     }
 
-    public ResultSet getCrossReference(String arg0, String arg1, String arg2, String arg3, String arg4, String arg5)
+    public CassandraResultSet getCrossReference(String arg0, String arg1, String arg2, String arg3, String arg4, String arg5)
     {
         return new CassandraResultSet();
     }
@@ -179,7 +183,7 @@ class CassandraDatabaseMetaData implements DatabaseMetaData
         return String.format("%d.%d.%d", CassandraDriver.DVR_MAJOR_VERSION,CassandraDriver.DVR_MINOR_VERSION,CassandraDriver.DVR_PATCH_VERSION);
     }
 
-    public ResultSet getExportedKeys(String arg0, String arg1, String arg2)
+    public CassandraResultSet getExportedKeys(String arg0, String arg1, String arg2)
     {
         return new CassandraResultSet();
     }
@@ -189,12 +193,12 @@ class CassandraDatabaseMetaData implements DatabaseMetaData
         return "";
     }
 
-    public ResultSet getFunctionColumns(String arg0, String arg1, String arg2, String arg3)
+    public CassandraResultSet getFunctionColumns(String arg0, String arg1, String arg2, String arg3)
     {
         return new CassandraResultSet();
     }
 
-    public ResultSet getFunctions(String arg0, String arg1, String arg2)
+    public CassandraResultSet getFunctions(String arg0, String arg1, String arg2)
     {
         return new CassandraResultSet();
     }
@@ -204,12 +208,12 @@ class CassandraDatabaseMetaData implements DatabaseMetaData
         return "'";
     }
 
-    public ResultSet getImportedKeys(String arg0, String arg1, String arg2)
+    public CassandraResultSet getImportedKeys(String arg0, String arg1, String arg2)
     {
         return new CassandraResultSet();
     }
 
-    public ResultSet getIndexInfo(String arg0, String arg1, String arg2, boolean arg3, boolean arg4)
+    public CassandraResultSet getIndexInfo(String arg0, String arg1, String arg2, boolean arg3, boolean arg4)
     {
         return new CassandraResultSet();
     }
@@ -327,15 +331,15 @@ class CassandraDatabaseMetaData implements DatabaseMetaData
 
     public String getNumericFunctions()
     {
-        return null;
+        return "";
     }
 
-    public ResultSet getPrimaryKeys(String arg0, String arg1, String arg2)
+    public CassandraResultSet getPrimaryKeys(String arg0, String arg1, String arg2)
     {
         return new CassandraResultSet();
     }
 
-    public ResultSet getProcedureColumns(String arg0, String arg1, String arg2, String arg3)
+    public CassandraResultSet getProcedureColumns(String arg0, String arg1, String arg2, String arg3)
     {
         return new CassandraResultSet();
     }
@@ -345,7 +349,7 @@ class CassandraDatabaseMetaData implements DatabaseMetaData
         return "";
     }
 
-    public ResultSet getProcedures(String arg0, String arg1, String arg2)
+    public CassandraResultSet getProcedures(String arg0, String arg1, String arg2)
     {
         return new CassandraResultSet();
     }
@@ -372,17 +376,20 @@ class CassandraDatabaseMetaData implements DatabaseMetaData
 
     public String getSchemaTerm()
     {
-        return "";
+        return "Column Family";
     }
 
-    public ResultSet getSchemas()
+    public CassandraResultSet getSchemas() throws SQLException
     {
-        return new CassandraResultSet();
+    	return MetadataResultSets.instance.makeSchemas(statement, null);
     }
 
-    public ResultSet getSchemas(String arg0, String arg1)
+    public CassandraResultSet getSchemas(String catalog, String schemaPattern) throws SQLException
     {
-        return new CassandraResultSet();
+        if (!(catalog == null || catalog.equals(statement.connection.cluster) ))
+            throw new SQLSyntaxErrorException("catalog name must exactly match or be null");
+        
+        return MetadataResultSets.instance.makeSchemas(statement, schemaPattern);
     }
 
     public String getSearchStringEscape()
@@ -395,12 +402,12 @@ class CassandraDatabaseMetaData implements DatabaseMetaData
         return "";
     }
 
-    public ResultSet getSuperTables(String arg0, String arg1, String arg2)
+    public CassandraResultSet getSuperTables(String arg0, String arg1, String arg2)
     {
         return new CassandraResultSet();
     }
 
-    public ResultSet getSuperTypes(String arg0, String arg1, String arg2)
+    public CassandraResultSet getSuperTypes(String arg0, String arg1, String arg2)
     {
         return new CassandraResultSet();
     }
@@ -410,17 +417,17 @@ class CassandraDatabaseMetaData implements DatabaseMetaData
         return "";
     }
 
-    public ResultSet getTablePrivileges(String arg0, String arg1, String arg2)
+    public CassandraResultSet getTablePrivileges(String arg0, String arg1, String arg2)
     {
         return new CassandraResultSet();
     }
 
-    public ResultSet getTableTypes()
+    public CassandraResultSet getTableTypes() throws SQLException
     {
-        return new CassandraResultSet();
+    	return MetadataResultSets.instance.makeTableTypes(statement);
     }
 
-    public ResultSet getTables(String arg0, String arg1, String arg2, String[] arg3)
+    public CassandraResultSet getTables(String arg0, String arg1, String arg2, String[] arg3)
     {
         return new CassandraResultSet();
     }
@@ -430,12 +437,12 @@ class CassandraDatabaseMetaData implements DatabaseMetaData
         return "";
     }
 
-    public ResultSet getTypeInfo()
+    public CassandraResultSet getTypeInfo()
     {
         return new CassandraResultSet();
     }
 
-    public ResultSet getUDTs(String arg0, String arg1, String arg2, int[] arg3)
+    public CassandraResultSet getUDTs(String arg0, String arg1, String arg2, int[] arg3)
     {
         return new CassandraResultSet();
     }
@@ -450,7 +457,7 @@ class CassandraDatabaseMetaData implements DatabaseMetaData
         return (connection.username==null) ? "" : connection.username;
     }
 
-    public ResultSet getVersionColumns(String arg0, String arg1, String arg2)
+    public CassandraResultSet getVersionColumns(String arg0, String arg1, String arg2)
     {
         return new CassandraResultSet();
     }
@@ -812,7 +819,7 @@ class CassandraDatabaseMetaData implements DatabaseMetaData
 
     public boolean supportsSchemasInDataManipulation()
     {
-        return false;
+        return true;
     }
 
     public boolean supportsSchemasInIndexDefinitions()
@@ -921,7 +928,7 @@ class CassandraDatabaseMetaData implements DatabaseMetaData
     	throw new SQLFeatureNotSupportedException(String.format(NOT_SUPPORTED));
     }
     
-    public ResultSet getPseudoColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) throws SQLFeatureNotSupportedException
+    public CassandraResultSet getPseudoColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) throws SQLFeatureNotSupportedException
     {
     	throw new SQLFeatureNotSupportedException(String.format(NOT_SUPPORTED));
     }

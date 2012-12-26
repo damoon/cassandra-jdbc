@@ -137,20 +137,19 @@ class CassandraStatement extends AbstractStatement implements Statement, Compara
     }
         
 
-    private void doExecute(String sql) throws SQLException
+    private void doExecute(String cql) throws SQLException
     {
         try
         {
-            if (logger.isTraceEnabled()) logger.trace("CQL: "+ sql);
+            if (logger.isTraceEnabled()) logger.trace("CQL: "+ cql);
             
             resetResults();
-            CqlResult rSet = connection.execute(sql);
-            String keyspace = connection.currentKeyspace;
+            CqlResult rSet = connection.execute(cql);
 
             switch (rSet.getType())
             {
                 case ROWS:
-                    currentResultSet = new CassandraResultSet(this, rSet, keyspace);
+                    currentResultSet = new CassandraResultSet(this, rSet);
                     break;
                 case INT:
                     updateCount = rSet.getNum();
@@ -162,7 +161,7 @@ class CassandraStatement extends AbstractStatement implements Statement, Compara
         }
         catch (InvalidRequestException e)
         {
-            throw new SQLSyntaxErrorException(e.getWhy()+"\n'"+sql+"'",e);
+            throw new SQLSyntaxErrorException(e.getWhy()+"\n'"+cql+"'",e);
         }
         catch (UnavailableException e)
         {

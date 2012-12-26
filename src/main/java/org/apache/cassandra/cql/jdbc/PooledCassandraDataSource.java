@@ -289,4 +289,12 @@ public class PooledCassandraDataSource implements DataSource, ConnectionEventLis
 	{
 		return System.currentTimeMillis()- connection.getCreationMillistime();
 	}
+
+	// Method not annotated with @Override since getParentLogger() is a new method
+	// in the CommonDataSource interface starting with JDK7 and this annotation
+	// would cause compilation errors with JDK6.
+    public java.util.logging.Logger getParentLogger() throws SQLFeatureNotSupportedException
+    {
+        return dataSource.getParentLogger();
+    }
 }
