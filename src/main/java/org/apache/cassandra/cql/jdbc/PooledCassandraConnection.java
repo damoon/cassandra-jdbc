@@ -154,7 +154,7 @@ class PooledCassandraConnection implements PooledConnection
 		}
 		catch (SQLException e)
 		{
-			logger.error(e.getLocalizedMessage());
+			logger.error("why is this statement closed?", e);
 		}
 
 	}
