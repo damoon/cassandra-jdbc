@@ -35,7 +35,6 @@ import java.util.concurrent.TimeUnit;
 import javax.sql.ConnectionEvent;
 import javax.sql.ConnectionEventListener;
 import javax.sql.DataSource;
-import javax.sql.PooledConnection;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -100,7 +99,7 @@ public class PooledCassandraDataSource implements DataSource, ConnectionEventLis
 						}
 						catch (InterruptedException e)
 						{
-							logger.warn("why did you do that ?", e);
+							throw new SQLException(e);
 						}
 			 		}
 				}
@@ -161,16 +160,9 @@ public class PooledCassandraDataSource implements DataSource, ConnectionEventLis
 
 	private void closePooledConnections(ConcurrentLinkedQueue<PooledCassandraConnection> usedConnections)
 	{
-		for (PooledConnection connection : usedConnections)
+		for (PooledCassandraConnection connection : usedConnections)
 		{
-			try
-			{
-				connection.close();
-			}
-			catch (SQLException e)
-			{
-				logger.error(e.getLocalizedMessage());
-			}
+			connection.close();
 		}
 	}
 
