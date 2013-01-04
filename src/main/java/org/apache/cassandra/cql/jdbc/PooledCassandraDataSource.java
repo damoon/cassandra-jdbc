@@ -152,10 +152,18 @@ public class PooledCassandraDataSource implements DataSource, ConnectionEventLis
 		}
 	}
 
-	public synchronized void close()
+	public synchronized void close() throws InterruptedException
 	{
-		closePooledConnections(usedConnections);
-		closePooledConnections(freeConnections);
+		try
+		{
+			threadPool.shutdown();
+			threadPool.awaitTermination(10l, TimeUnit.SECONDS);
+		}
+		finally
+		{
+			closePooledConnections(usedConnections);
+			closePooledConnections(freeConnections);
+		}
 	}
 
 	private void closePooledConnections(ConcurrentLinkedQueue<PooledCassandraConnection> usedConnections)
