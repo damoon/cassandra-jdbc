@@ -24,12 +24,15 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 
 import javax.sql.DataSource;
 
 import org.apache.cassandra.cql.ConnectionDetails;
+import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -40,7 +43,7 @@ public class PooledTest
 	private static final String KEYSPACE = "testks";
 	private static final String USER = "JohnDoe";
 	private static final String PASSWORD = "secret";
-	private static final String VERSION = "2.0.0";
+	private static final String VERSION = "3.0.0";
 
 	private static java.sql.Connection con = null;
 
@@ -48,8 +51,8 @@ public class PooledTest
 	public static void setUpBeforeClass() throws Exception
 	{
 		Class.forName("org.apache.cassandra.cql.jdbc.CassandraDriver");
-		con = DriverManager.getConnection(String.format("jdbc:cassandra://%s:%d/%s", HOST, PORT, "system"));
-		Statement stmt = con.createStatement();
+		Connection connection = DriverManager.getConnection(String.format("jdbc:cassandra://%s:%d/%s", HOST, PORT, "system"));
+		Statement stmt = connection.createStatement();
 
 		// Drop Keyspace
 		String dropKS = String.format("DROP KEYSPACE \"%s\";", KEYSPACE);
@@ -67,18 +70,35 @@ public class PooledTest
 				"CREATE KEYSPACE \"%s\" WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};",
 				KEYSPACE);
 		stmt.execute(createKS);
+		
+		stmt.close();
+		
+		connection.close();
 
-		// Create KeySpace
-		String useKS = String.format("USE \"%s\";", KEYSPACE);
-		stmt.execute(useKS);
-
+		con = DriverManager.getConnection(String.format("jdbc:cassandra://%s:%d/%s", HOST, PORT, KEYSPACE));
+	}
+	
+	@Before
+	public void setUp() throws SQLException
+	{
+		Statement stmt = con.createStatement();
+		
 		// Create the target Column family
-		String createCF = "CREATE COLUMNFAMILY pooled_test (somekey text PRIMARY KEY," + "someInt int"
-				+ ") ;";
-		stmt.execute(createCF);
+		stmt.execute("CREATE COLUMNFAMILY pooled_test (somekey text PRIMARY KEY, someInt int) ;");
 
-		String insertWorld = "UPDATE pooled_test SET someInt = 1 WHERE somekey = 'world'";
-		stmt.execute(insertWorld);
+		stmt.execute("UPDATE pooled_test SET someInt = '1' WHERE somekey = 'world'");
+		stmt.execute("INSERT INTO pooled_test (somekey, someInt) VALUES ('hello', '1')");
+		
+		stmt.close();
+	}
+	
+	@After
+	public void tearDown() throws SQLException
+	{
+		con = DriverManager.getConnection(String.format("jdbc:cassandra://%s:%d/%s", HOST, PORT, KEYSPACE));
+		Statement stmt = con.createStatement();
+		stmt.execute("DROP COLUMNFAMILY pooled_test;");
+		stmt.close();
 	}
 
 	@AfterClass
@@ -87,35 +107,6 @@ public class PooledTest
 		if (con != null) con.close();
 	}
 
-	@Test
-	public void fortyThousandConnections() throws Exception
-	{
-		CassandraDataSource connectionPoolDataSource = new CassandraDataSource(HOST, PORT, KEYSPACE, USER, PASSWORD, VERSION);
-
-		PooledCassandraDataSource pooledCassandraDataSource = new PooledCassandraDataSource(connectionPoolDataSource);
-				
-		for (int i = 0; i < 40000; i++)
-		{
-			Connection connection = pooledCassandraDataSource.getConnection();
-			connection.close();
-		}
-	}
-
-	@Test
-	public void twentyThousandPreparedStatements() throws Exception
-	{
-		CassandraDataSource connectionPoolDataSource = new CassandraDataSource(HOST, PORT, KEYSPACE, USER, PASSWORD, VERSION);
-
-		PooledCassandraDataSource pooledCassandraDataSource = new PooledCassandraDataSource(connectionPoolDataSource);
-
-		Connection connection = pooledCassandraDataSource.getConnection();
-		for (int i = 0; i < 20000; i++)
-		{
-			PreparedStatement preparedStatement = connection.prepareStatement("SELECT someInt FROM pooled_test WHERE somekey = ?");
-			preparedStatement.close();
-		}
-		connection.close();
-	}
 
 	@Test
 	public void preparedStatement() throws Exception
