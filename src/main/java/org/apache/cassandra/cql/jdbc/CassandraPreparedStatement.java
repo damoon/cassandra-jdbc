@@ -50,6 +50,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlPreparedResult;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.InvalidRequestException;
@@ -61,7 +62,7 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class CassandraPreparedStatement extends CassandraStatement implements PreparedStatement
+public class CassandraPreparedStatement extends CassandraStatement implements PreparedStatement
 {
     private static final Logger LOG = LoggerFactory.getLogger(CassandraPreparedStatement.class);
 
@@ -122,13 +123,13 @@ class CassandraPreparedStatement extends CassandraStatement implements PreparedS
         }
     }
 
-    private void doExecute() throws SQLException
+    private void doExecute(ConsistencyLevel consistencyLevel) throws SQLException
     {
         if (LOG.isTraceEnabled()) LOG.trace("CQL: " + cql);
         try
         {
             resetResults();
-            CqlResult result = connection.execute(itemId, getBindValues());
+            CqlResult result = connection.execute(itemId, getBindValues(), consistencyLevel);
 
             switch (result.getType())
             {
@@ -181,7 +182,14 @@ class CassandraPreparedStatement extends CassandraStatement implements PreparedS
     public boolean execute() throws SQLException
     {
         checkNotClosed();
-        doExecute();
+        doExecute(ConsistencyLevel.ONE);
+        return !(currentResultSet == null);
+    }
+    
+    public boolean execute(ConsistencyLevel consistencyLevel) throws SQLException
+    {
+        checkNotClosed();
+        doExecute(consistencyLevel);
         return !(currentResultSet == null);
     }
 
@@ -189,7 +197,15 @@ class CassandraPreparedStatement extends CassandraStatement implements PreparedS
     public CassandraResultSet executeQuery() throws SQLException
     {
         checkNotClosed();
-        doExecute();
+        doExecute(ConsistencyLevel.ONE);
+        if (currentResultSet == null) throw new SQLNonTransientException(NO_RESULTSET);
+        return currentResultSet;
+    }
+
+    public CassandraResultSet executeQuery(ConsistencyLevel consistencyLevel) throws SQLException
+    {
+        checkNotClosed();
+        doExecute(consistencyLevel);
         if (currentResultSet == null) throw new SQLNonTransientException(NO_RESULTSET);
         return currentResultSet;
     }
@@ -198,7 +214,15 @@ class CassandraPreparedStatement extends CassandraStatement implements PreparedS
     public int executeUpdate() throws SQLException
     {
         checkNotClosed();
-        doExecute();
+        doExecute(ConsistencyLevel.ONE);
+        if (currentResultSet != null) throw new SQLNonTransientException(NO_UPDATE_COUNT);
+        return updateCount;
+    }
+
+    public int executeUpdate(ConsistencyLevel consistencyLevel) throws SQLException
+    {
+        checkNotClosed();
+        doExecute(consistencyLevel);
         if (currentResultSet != null) throw new SQLNonTransientException(NO_UPDATE_COUNT);
         return updateCount;
     }

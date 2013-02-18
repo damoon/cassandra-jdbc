@@ -35,6 +35,7 @@ import java.sql.SQLTransientConnectionException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
 
+import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.thrift.SchemaDisagreementException;
@@ -48,7 +49,7 @@ import org.slf4j.LoggerFactory;
  * Cassandra statement: implementation class for {@link PreparedStatement}.
  */
 
-class CassandraStatement extends AbstractStatement implements Statement, Comparable<Object>
+public class CassandraStatement extends AbstractStatement implements Statement, Comparable<Object>
 {
     private static final Logger logger = LoggerFactory.getLogger(CassandraStatement.class);
     /**
@@ -137,14 +138,14 @@ class CassandraStatement extends AbstractStatement implements Statement, Compara
     }
         
 
-    private void doExecute(String cql) throws SQLException
+    private void doExecute(String cql, ConsistencyLevel consistencyLevel) throws SQLException
     {
         try
         {
             if (logger.isTraceEnabled()) logger.trace("CQL: "+ cql);
             
             resetResults();
-            CqlResult rSet = connection.execute(cql);
+            CqlResult rSet = connection.execute(cql, consistencyLevel);
 
             switch (rSet.getType())
             {
@@ -185,7 +186,14 @@ class CassandraStatement extends AbstractStatement implements Statement, Compara
     public boolean execute(String query) throws SQLException
     {
         checkNotClosed();
-        doExecute(query);
+        doExecute(query, ConsistencyLevel.ONE);
+        return !(currentResultSet == null);
+    }
+
+    public boolean execute(String query, ConsistencyLevel consistencyLevel) throws SQLException
+    {
+        checkNotClosed();
+        doExecute(query, consistencyLevel);
         return !(currentResultSet == null);
     }
 
@@ -209,7 +217,16 @@ class CassandraStatement extends AbstractStatement implements Statement, Compara
     public CassandraResultSet executeQuery(String query) throws SQLException
     {
         checkNotClosed();
-        doExecute(query);
+        doExecute(query, ConsistencyLevel.ONE);
+        if (currentResultSet == null)
+            throw new SQLNonTransientException(NO_RESULTSET);
+        return currentResultSet;
+    }
+
+    public CassandraResultSet executeQuery(String query, ConsistencyLevel consistencyLevel) throws SQLException
+    {
+        checkNotClosed();
+        doExecute(query, consistencyLevel);
         if (currentResultSet == null)
             throw new SQLNonTransientException(NO_RESULTSET);
         return currentResultSet;
@@ -218,7 +235,16 @@ class CassandraStatement extends AbstractStatement implements Statement, Compara
     public int executeUpdate(String query) throws SQLException
     {
         checkNotClosed();
-        doExecute(query);
+        doExecute(query, ConsistencyLevel.ONE);
+        if (currentResultSet != null)
+            throw new SQLNonTransientException(NO_UPDATE_COUNT);
+        return updateCount;
+    }
+
+    public int executeUpdate(String query, ConsistencyLevel consistencyLevel) throws SQLException
+    {
+        checkNotClosed();
+        doExecute(query, consistencyLevel);
         if (currentResultSet != null)
             throw new SQLNonTransientException(NO_UPDATE_COUNT);
         return updateCount;

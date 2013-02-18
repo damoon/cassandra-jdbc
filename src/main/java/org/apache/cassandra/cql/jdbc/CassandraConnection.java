@@ -45,7 +45,7 @@ import static org.apache.cassandra.cql.jdbc.Utils.*;
 /**
  * Implementation class for {@link Connection}.
  */
-class CassandraConnection extends AbstractConnection implements Connection
+public class CassandraConnection extends AbstractConnection implements Connection
 {
 
     private static final Logger logger = LoggerFactory.getLogger(CassandraConnection.class);
@@ -437,6 +437,23 @@ class CassandraConnection extends AbstractConnection implements Connection
     }
 
     /**
+     * Execute a CQL query using the default compression methodology.
+     *
+     * @param queryStr a CQL query string
+     * @return the query results encoded as a CqlResult structure
+     * @throws InvalidRequestException     on poorly constructed or illegal requests
+     * @throws UnavailableException        when not all required replicas could be created/read
+     * @throws TimedOutException           when a cluster operation timed out
+     * @throws SchemaDisagreementException when the client side and server side are at different versions of schema (Thrift)
+     * @throws TException                  when there is a error in Thrift processing
+     */
+    protected CqlResult execute(String queryStr, ConsistencyLevel consistencyLevel)
+              throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException
+    {
+        return execute(queryStr, defaultCompression, consistencyLevel);
+    }
+
+    /**
      * Execute a CQL query.
      *
      * @param queryStr    a CQL query string
@@ -448,13 +465,13 @@ class CassandraConnection extends AbstractConnection implements Connection
      * @throws SchemaDisagreementException when the client side and server side are at different versions of schema (Thrift)
      * @throws TException                  when there is a error in Thrift processing
      */
-    protected CqlResult execute(String queryStr, Compression compression) throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException
+    protected CqlResult execute(String queryStr, Compression compression, ConsistencyLevel consistencyLevel) throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException
     {
         currentKeyspace = determineCurrentKeyspace(queryStr, currentKeyspace);
 
         try
         {
-            if (majorCqlVersion==3) return client.execute_cql3_query(Utils.compressQuery(queryStr, compression), compression, ConsistencyLevel.ONE);
+            if (majorCqlVersion==3) return client.execute_cql3_query(Utils.compressQuery(queryStr, compression), compression, consistencyLevel);
             else                    return client.execute_cql_query(Utils.compressQuery(queryStr, compression), compression);
         }
         catch (TException error)
@@ -465,29 +482,12 @@ class CassandraConnection extends AbstractConnection implements Connection
         }
     }
 
-    /**
-     * Execute a CQL query using the default compression methodology.
-     *
-     * @param queryStr a CQL query string
-     * @return the query results encoded as a CqlResult structure
-     * @throws InvalidRequestException     on poorly constructed or illegal requests
-     * @throws UnavailableException        when not all required replicas could be created/read
-     * @throws TimedOutException           when a cluster operation timed out
-     * @throws SchemaDisagreementException when the client side and server side are at different versions of schema (Thrift)
-     * @throws TException                  when there is a error in Thrift processing
-     */
-    protected CqlResult execute(String queryStr)
-              throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException
-    {
-        return execute(queryStr, defaultCompression);
-    }
-
-    protected CqlResult execute(int itemId, List<ByteBuffer> values)
+    protected CqlResult execute(int itemId, List<ByteBuffer> values, ConsistencyLevel consistencyLevel)
               throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException
     {
         try
         {
-            if (majorCqlVersion==3) return client.execute_prepared_cql3_query(itemId, values, ConsistencyLevel.ONE);
+            if (majorCqlVersion==3) return client.execute_prepared_cql3_query(itemId, values, consistencyLevel);
             else                    return client.execute_prepared_cql_query(itemId, values);
         }
         catch (TException error)
