@@ -32,12 +32,14 @@ import java.util.Set;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.Map;
 
 import org.apache.cassandra.cql.ConnectionDetails;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -62,6 +64,8 @@ public class CollectionsTest
     private static final String CQLV3 = "3.0.0";
 
     private static java.sql.Connection con = null;
+    
+    private static String URL = String.format("jdbc:cassandra://%s:%d/%s?version=%s", HOST, PORT, SYSTEM, CQLV3);
 
     /**
      * @throws java.lang.Exception
@@ -70,7 +74,6 @@ public class CollectionsTest
     public static void setUpBeforeClass() throws Exception
     {
         Class.forName("org.apache.cassandra.cql.jdbc.CassandraDriver");
-        String URL = String.format("jdbc:cassandra://%s:%d/%s?version=%s", HOST, PORT, SYSTEM, CQLV3);
 
         con = DriverManager.getConnection(URL);
 
@@ -110,20 +113,6 @@ public class CollectionsTest
         stmt.close();
         con.close();
 
-        // open it up again to see the new TABLE
-        URL = String.format("jdbc:cassandra://%s:%d/%s?version=%s", HOST, PORT, KEYSPACE, CQLV3);
-        con = DriverManager.getConnection(URL);
-        if (LOG.isDebugEnabled()) LOG.debug("URL         = '{}'", URL);
-
-        Statement statement = con.createStatement();
-
-        String insert = "INSERT INTO testcollection (k,L) VALUES( 1,[1, 3, 12345]);";
-        statement.executeUpdate(insert);
-        String update1 = "UPDATE testcollection SET S = {'red', 'white', 'blue'} WHERE k = 1;";
-        String update2 = "UPDATE testcollection SET M = {2.0: 'true', 4.0: 'false', 6.0 : 'true'} WHERE k = 1;";
-        statement.executeUpdate(update1);
-        statement.executeUpdate(update2);
-
 
         if (LOG.isDebugEnabled()) LOG.debug("Unit Test: 'CollectionsTest' initialization complete.\n\n");
     }
@@ -136,6 +125,27 @@ public class CollectionsTest
     {
         if (con != null) con.close();
     }
+    
+    @Before
+    public void setupBefore () throws SQLException
+    {
+        // open it up again to see the new TABLE
+        URL = String.format("jdbc:cassandra://%s:%d/%s?version=%s", HOST, PORT, KEYSPACE, CQLV3);
+        con = DriverManager.getConnection(URL);
+        if (LOG.isDebugEnabled()) LOG.debug("URL         = '{}'", URL);
+
+        Statement statement = con.createStatement();
+        
+        String delete = "TRUNCATE testcollection;";
+        statement.executeUpdate(delete);
+
+        String insert = "INSERT INTO testcollection (k,L) VALUES( 1,[1, 3, 12345]);";
+        statement.executeUpdate(insert);
+        String update1 = "UPDATE testcollection SET S = {'red', 'white', 'blue'} WHERE k = 1;";
+        String update2 = "UPDATE testcollection SET M = {2.0: 'true', 4.0: 'false', 6.0 : 'true'} WHERE k = 1;";
+        statement.executeUpdate(update1);
+        statement.executeUpdate(update2);
+    }
 
     @Test
     public void testReadList() throws Exception
@@ -143,7 +153,7 @@ public class CollectionsTest
         if (LOG.isDebugEnabled()) LOG.debug("Test: 'testReadList'\n");
 
         Statement statement = con.createStatement();
-
+        
         ResultSet result = statement.executeQuery("SELECT * FROM testcollection WHERE k = 1;");
         result.next();
 
