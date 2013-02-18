@@ -259,6 +259,9 @@ public  class MetadataResultSets
         else if ((schemaPattern==null) && tableNamePattern!=null) query.append(String.format(suffix1, "columnfamily_name", tableNamePattern));
         else if ((schemaPattern!=null) && tableNamePattern!=null)
             query.append(String.format(suffix1 + suffix2, "keyspace_name", schemaPattern,"columnfamily_name", tableNamePattern));
+
+        query.append(" ALLOW FILTERING");
+        
         System.out.println(query.toString());
 
         Entry entryC = new Entry("TABLE_CAT",bytes(catalog),ASCII_TYPE);
@@ -266,6 +269,7 @@ public  class MetadataResultSets
         CassandraResultSet result;
         List<Entry> col;
         List<List<Entry>> rows = new ArrayList<List<Entry>>();
+        
         
         // determine the schemas
         result = (CassandraResultSet)statement.executeQuery(query.toString());
