@@ -39,7 +39,7 @@ import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PooledCassandraDataSource implements DataSource, ConnectionEventListener
+public class PooledCassandraDataSource implements CassandraDataSource, ConnectionEventListener
 {
 	static final int CONNECTION_IS_VALID_TIMEOUT = 1;
 
@@ -58,13 +58,13 @@ public class PooledCassandraDataSource implements DataSource, ConnectionEventLis
 	
 	private ThreadPoolExecutor threadPool = new ThreadPoolExecutor(6, 6, 60, TimeUnit.SECONDS, workQueue);
 
-	private CassandraDataSource dataSource;
+	private PhysicalCassandraDataSource dataSource;
 
 	private ConcurrentLinkedQueue<PooledCassandraConnection> freeConnections = new ConcurrentLinkedQueue<PooledCassandraConnection>();
 
 	private ConcurrentLinkedQueue<PooledCassandraConnection> usedConnections = new ConcurrentLinkedQueue<PooledCassandraConnection>();
 	
-	public PooledCassandraDataSource(CassandraDataSource dataSource) throws SQLException
+	public PooledCassandraDataSource(PhysicalCassandraDataSource dataSource) throws SQLException
 	{
 		this.dataSource = dataSource;
 		for (int i=0; i<MAX_POOL_SIZE / 4; i++)
@@ -74,7 +74,7 @@ public class PooledCassandraDataSource implements DataSource, ConnectionEventLis
 	}
 
 	@Override
-	public Connection getConnection() throws SQLException
+	public CassandraConnection getConnection() throws SQLException
 	{
 		PooledCassandraConnection connection = null;
 
@@ -243,11 +243,11 @@ public class PooledCassandraDataSource implements DataSource, ConnectionEventLis
 		
 		private volatile ConcurrentLinkedQueue<PooledCassandraConnection> freeConnections;
 		
-		private CassandraDataSource dataSource;
+		private PhysicalCassandraDataSource dataSource;
 		
 		private PooledCassandraDataSource pooledDataSource;
 		       
-		public ConnectionPoolFiller(ConcurrentLinkedQueue<PooledCassandraConnection> freeConnections, CassandraDataSource dataSource, PooledCassandraDataSource pooledDataSource)
+		public ConnectionPoolFiller(ConcurrentLinkedQueue<PooledCassandraConnection> freeConnections, PhysicalCassandraDataSource dataSource, PooledCassandraDataSource pooledDataSource)
         {
             this.dataSource = dataSource;
             this.freeConnections = freeConnections;

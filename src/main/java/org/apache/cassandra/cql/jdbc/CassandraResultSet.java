@@ -92,7 +92,7 @@ class CassandraResultSet extends AbstractResultSet implements CassandraResultSet
 
     private final CResultSetMetaData meta;
 
-    private final CassandraStatement statement;
+    private final PhysicalCassandraStatement statement;
 
     private Integer resultSetType;
 
@@ -116,7 +116,7 @@ class CassandraResultSet extends AbstractResultSet implements CassandraResultSet
     /**
      * Instantiates a new cassandra result set from a CqlResult.
      */
-    CassandraResultSet(CassandraStatement statement, CqlResult resultSet)
+    CassandraResultSet(PhysicalCassandraStatement statement, CqlResult resultSet)
     {
         this.statement = statement;
         this.schema = resultSet.schema;

@@ -165,7 +165,7 @@ public  class MetadataResultSets
  
     
 
-    public  CassandraResultSet makeTableTypes(CassandraStatement statement) throws SQLException
+    public  CassandraResultSet makeTableTypes(PhysicalCassandraStatement statement) throws SQLException
     {
         final  Entry[][] tableTypes = { { new Entry("TABLE_TYPE",bytes("TABLE"),ASCII_TYPE)} };
         
@@ -176,7 +176,7 @@ public  class MetadataResultSets
         return result;
     }
 
-    public  CassandraResultSet makeCatalogs(CassandraStatement statement) throws SQLException
+    public  CassandraResultSet makeCatalogs(PhysicalCassandraStatement statement) throws SQLException
     {
         final Entry[][] catalogs = { { new Entry("TABLE_CAT",bytes(statement.connection.cluster),ASCII_TYPE)} };
 
@@ -187,7 +187,7 @@ public  class MetadataResultSets
         return result;
     }
     
-    public  CassandraResultSet makeSchemas(CassandraStatement statement, String schemaPattern) throws SQLException
+    public  CassandraResultSet makeSchemas(PhysicalCassandraStatement statement, String schemaPattern) throws SQLException
     {
 
         // TABLE_SCHEM String => schema name
@@ -231,7 +231,7 @@ public  class MetadataResultSets
         return result;
     }
     
-    public  CassandraResultSet makeTables(CassandraStatement statement, String schemaPattern, String tableNamePattern) throws SQLException
+    public  CassandraResultSet makeTables(PhysicalCassandraStatement statement, String schemaPattern, String tableNamePattern) throws SQLException
     {
         //   1.   TABLE_CAT String => table catalog (may be null)
         //   2.   TABLE_SCHEM String => table schema (may be null)

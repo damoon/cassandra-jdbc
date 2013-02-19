@@ -23,7 +23,6 @@ package org.apache.cassandra.cql.jdbc;
 import static org.apache.cassandra.cql.jdbc.Utils.NO_INTERFACE;
 import static org.apache.cassandra.cql.jdbc.Utils.WAS_CLOSED_CON;
 
-import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -36,11 +35,11 @@ import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
 
-class ManagedConnection extends AbstractConnection implements Connection
+class ManagedConnection extends AbstractConnection implements CassandraConnection
 {
 	private PooledCassandraConnection pooledCassandraConnection;
 
-	private CassandraConnection physicalConnection;
+	private PhysicalCassandraConnection physicalConnection;
 
 	private Set<CassandraStatement> statements = new HashSet<CassandraStatement>();
 
@@ -132,7 +131,7 @@ class ManagedConnection extends AbstractConnection implements Connection
 	}
 
 	@Override
-	public PreparedStatement prepareStatement(String cql) throws SQLException
+	public CassandraPreparedStatement prepareStatement(String cql) throws SQLException
 	{
 		checkNotClosed();
 		try

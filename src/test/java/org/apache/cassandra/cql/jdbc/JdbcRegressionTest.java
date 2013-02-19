@@ -270,12 +270,12 @@ public class JdbcRegressionTest
     @Test
     public void isNotValid() throws Exception
     {
-    	Client currentClient = ((CassandraConnection) con).client;
+    	Client currentClient = ((PhysicalCassandraConnection) con).client;
     	Client mockedClient = mock(Client.class);
         when(mockedClient.describe_version()).thenThrow(new TException("A mocked ERROR"));
-        ((CassandraConnection) con).client = mockedClient;
+        ((PhysicalCassandraConnection) con).client = mockedClient;
         assert con.isValid(5) == false;
-        ((CassandraConnection) con).client = currentClient;
+        ((PhysicalCassandraConnection) con).client = currentClient;
     }
     
     

@@ -41,7 +41,7 @@ public class MetadataResultSetsTest
     private static final String DROP_KS = "DROP KEYSPACE \"%s\";";
     private static final String CREATE_KS = "CREATE KEYSPACE \"%s\" WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};";
       
-    private static java.sql.Connection con = null;
+    private static PhysicalCassandraConnection con = null;
     
 
     @BeforeClass
@@ -51,7 +51,7 @@ public class MetadataResultSetsTest
         String URL = String.format("jdbc:cassandra://%s:%d/%s?version=3.0.0",HOST,PORT,"system");
         System.out.println("Connection URL = '"+URL +"'");
         
-        con = DriverManager.getConnection(URL);
+        con = (PhysicalCassandraConnection) DriverManager.getConnection(URL);
         Statement stmt = con.createStatement();
         
         // Drop Keyspace
@@ -98,7 +98,7 @@ public class MetadataResultSetsTest
         con.close();
 
         // open it up again to see the new CF
-        con = DriverManager.getConnection(String.format("jdbc:cassandra://%s:%d/%s?version=3.0.0",HOST,PORT,KEYSPACE1));
+        con = (PhysicalCassandraConnection) DriverManager.getConnection(String.format("jdbc:cassandra://%s:%d/%s?version=3.0.0",HOST,PORT,KEYSPACE1));
 
     }
     
@@ -145,7 +145,7 @@ public class MetadataResultSetsTest
     @Test
     public void testTableType() throws SQLException
     {
-        CassandraStatement statement = (CassandraStatement) con.createStatement();
+    	PhysicalCassandraStatement statement = (PhysicalCassandraStatement) con.createStatement();
         ResultSet result = MetadataResultSets.instance.makeTableTypes(statement);
         
         System.out.println("--- testTableType() ---");
@@ -156,7 +156,7 @@ public class MetadataResultSetsTest
     @Test
     public void testCatalogs() throws SQLException
     {
-        CassandraStatement statement = (CassandraStatement) con.createStatement();
+    	PhysicalCassandraStatement statement = (PhysicalCassandraStatement) con.createStatement();
         ResultSet result = MetadataResultSets.instance.makeCatalogs(statement);
         
         System.out.println("--- testCatalogs() ---");
@@ -167,7 +167,7 @@ public class MetadataResultSetsTest
     @Test
     public void testSchemas() throws SQLException
     {
-        CassandraStatement statement = (CassandraStatement) con.createStatement();
+    	PhysicalCassandraStatement statement = (PhysicalCassandraStatement) con.createStatement();
         ResultSet result = MetadataResultSets.instance.makeSchemas(statement, null);
         
         System.out.println("--- testSchemas() ---");
@@ -185,7 +185,7 @@ public class MetadataResultSetsTest
     @Test
     public void testTables() throws SQLException
     {
-        CassandraStatement statement = (CassandraStatement) con.createStatement();
+    	PhysicalCassandraStatement statement = (PhysicalCassandraStatement) con.createStatement();
         ResultSet result = MetadataResultSets.instance.makeTables(statement, null, null);
         
         System.out.println("--- testTables() ---");

@@ -6,7 +6,6 @@ import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.Date;
 import java.sql.ParameterMetaData;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.RowId;
@@ -18,20 +17,22 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Calendar;
 
-class ManagedPreparedStatement extends AbstractStatement implements PreparedStatement
+import org.apache.cassandra.thrift.ConsistencyLevel;
+
+class ManagedPreparedStatement extends AbstractStatement implements CassandraPreparedStatement
 {
 	private PooledCassandraConnection pooledCassandraConnection;
 
 	private ManagedConnection managedConnection;
 
-	private CassandraPreparedStatement preparedStatement;
+	private PhysicalCassandraPreparedStatement preparedStatement;
 	
 	private CassandraResultSet resultSet;
 	
 	private boolean poolable;
 
 	ManagedPreparedStatement(PooledCassandraConnection pooledCassandraConnection, ManagedConnection managedConnection,
-			CassandraPreparedStatement preparedStatement)
+			PhysicalCassandraPreparedStatement preparedStatement)
 	{
 		this.pooledCassandraConnection = pooledCassandraConnection;
 		this.managedConnection = managedConnection;
@@ -993,6 +994,96 @@ class ManagedPreparedStatement extends AbstractStatement implements PreparedStat
 		try
 		{
 			preparedStatement.setURL(parameterIndex, x);
+		}
+		catch (SQLException sqlException)
+		{
+			pooledCassandraConnection.statementErrorOccurred(preparedStatement, sqlException);
+			throw sqlException;
+		}
+	}
+
+	@Override
+	public boolean execute(ConsistencyLevel consistencyLevel) throws SQLException
+	{
+		checkNotClosed();
+		try
+		{
+			return preparedStatement.execute(consistencyLevel);
+		}
+		catch (SQLException sqlException)
+		{
+			pooledCassandraConnection.statementErrorOccurred(preparedStatement, sqlException);
+			throw sqlException;
+		}
+	}
+
+	@Override
+	public CassandraResultSet executeQuery(ConsistencyLevel consistencyLevel) throws SQLException
+	{
+		checkNotClosed();
+		try
+		{
+			return preparedStatement.executeQuery(consistencyLevel);
+		}
+		catch (SQLException sqlException)
+		{
+			pooledCassandraConnection.statementErrorOccurred(preparedStatement, sqlException);
+			throw sqlException;
+		}
+	}
+
+	@Override
+	public int executeUpdate(ConsistencyLevel consistencyLevel) throws SQLException
+	{
+		checkNotClosed();
+		try
+		{
+			return preparedStatement.executeUpdate(consistencyLevel);
+		}
+		catch (SQLException sqlException)
+		{
+			pooledCassandraConnection.statementErrorOccurred(preparedStatement, sqlException);
+			throw sqlException;
+		}
+	}
+
+	@Override
+	public boolean execute(String query, ConsistencyLevel consistencyLevel) throws SQLException
+	{
+		checkNotClosed();
+		try
+		{
+			return preparedStatement.execute(query, consistencyLevel);
+		}
+		catch (SQLException sqlException)
+		{
+			pooledCassandraConnection.statementErrorOccurred(preparedStatement, sqlException);
+			throw sqlException;
+		}
+	}
+
+	@Override
+	public CassandraResultSet executeQuery(String query, ConsistencyLevel consistencyLevel) throws SQLException
+	{
+		checkNotClosed();
+		try
+		{
+			return preparedStatement.executeQuery(query, consistencyLevel);
+		}
+		catch (SQLException sqlException)
+		{
+			pooledCassandraConnection.statementErrorOccurred(preparedStatement, sqlException);
+			throw sqlException;
+		}
+	}
+
+	@Override
+	public int executeUpdate(String query, ConsistencyLevel consistencyLevel) throws SQLException
+	{
+		checkNotClosed();
+		try
+		{
+			return preparedStatement.executeUpdate(query, consistencyLevel);
 		}
 		catch (SQLException sqlException)
 		{

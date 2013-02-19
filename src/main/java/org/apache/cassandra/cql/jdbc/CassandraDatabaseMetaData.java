@@ -33,13 +33,13 @@ import java.sql.SQLSyntaxErrorException;
 
 class CassandraDatabaseMetaData implements DatabaseMetaData
 {
-    private CassandraConnection connection;
-    private CassandraStatement statement;
+    private PhysicalCassandraConnection connection;
+    private PhysicalCassandraStatement statement;
     
-    public CassandraDatabaseMetaData(CassandraConnection connection)
+    public CassandraDatabaseMetaData(PhysicalCassandraConnection connection)
     {
         this.connection = connection;
-        this.statement = new CassandraStatement(connection);
+        this.statement = new PhysicalCassandraStatement(connection);
     }
     
     public boolean isWrapperFor(Class<?> iface)
@@ -140,22 +140,22 @@ class CassandraDatabaseMetaData implements DatabaseMetaData
 
     public int getDatabaseMajorVersion()
     {
-        return CassandraConnection.DB_MAJOR_VERSION;
+        return PhysicalCassandraConnection.DB_MAJOR_VERSION;
     }
 
     public int getDatabaseMinorVersion()
     {
-        return CassandraConnection.DB_MINOR_VERSION;
+        return PhysicalCassandraConnection.DB_MINOR_VERSION;
     }
 
     public String getDatabaseProductName()
     {
-        return CassandraConnection.DB_PRODUCT_NAME;
+        return PhysicalCassandraConnection.DB_PRODUCT_NAME;
     }
 
     public String getDatabaseProductVersion()
     {
-        return String.format("%d.%d", CassandraConnection.DB_MAJOR_VERSION,CassandraConnection.DB_MINOR_VERSION);
+        return String.format("%d.%d", PhysicalCassandraConnection.DB_MAJOR_VERSION, PhysicalCassandraConnection.DB_MINOR_VERSION);
     }
 
     public int getDefaultTransactionIsolation()

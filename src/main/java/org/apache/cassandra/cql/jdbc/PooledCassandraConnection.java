@@ -43,21 +43,21 @@ class PooledCassandraConnection implements PooledConnection
 {
 	private static final Logger logger = LoggerFactory.getLogger(PooledCassandraConnection.class);
 	
-	private CassandraConnection physicalConnection;
+	private PhysicalCassandraConnection physicalConnection;
 
 	volatile Set<ConnectionEventListener> connectionEventListeners = new HashSet<ConnectionEventListener>();
 
 	volatile Set<StatementEventListener> statementEventListeners = new HashSet<StatementEventListener>();
 
-	private Map<String, Set<CassandraPreparedStatement>> freePreparedStatements = new HashMap<String, Set<CassandraPreparedStatement>>();
+	private Map<String, Set<PhysicalCassandraPreparedStatement>> freePreparedStatements = new HashMap<String, Set<PhysicalCassandraPreparedStatement>>();
 
-	private Map<String, Set<CassandraPreparedStatement>> usedPreparedStatements = new HashMap<String, Set<CassandraPreparedStatement>>();
+	private Map<String, Set<PhysicalCassandraPreparedStatement>> usedPreparedStatements = new HashMap<String, Set<PhysicalCassandraPreparedStatement>>();
 
 	private int outhandedCount = 0;
 
 	private long creationMillistime;
 	
-	PooledCassandraConnection(CassandraConnection physicalConnection)
+	PooledCassandraConnection(PhysicalCassandraConnection physicalConnection)
 	{
 		this.physicalConnection = physicalConnection;
 		creationMillistime = System.currentTimeMillis();
@@ -79,7 +79,7 @@ class PooledCassandraConnection implements PooledConnection
 	}
 
 	@Override
-	public CassandraConnection getConnection()
+	public PhysicalCassandraConnection getConnection()
 	{
 		return physicalConnection;
 	}
@@ -132,7 +132,7 @@ class PooledCassandraConnection implements PooledConnection
 		}
 	}
 
-	void statementClosed(CassandraPreparedStatement preparedStatement)
+	void statementClosed(PhysicalCassandraPreparedStatement preparedStatement)
 	{
 		StatementEvent event = new StatementEvent(this, preparedStatement);
 		for (StatementEventListener listener : statementEventListeners)
@@ -141,8 +141,8 @@ class PooledCassandraConnection implements PooledConnection
 		}
 
 		String cql = preparedStatement.getCql();
-		Set<CassandraPreparedStatement> freeStatements = freePreparedStatements.get(cql);
-		Set<CassandraPreparedStatement> usedStatements = usedPreparedStatements.get(cql);
+		Set<PhysicalCassandraPreparedStatement> freeStatements = freePreparedStatements.get(cql);
+		Set<PhysicalCassandraPreparedStatement> usedStatements = usedPreparedStatements.get(cql);
 
 		usedStatements.remove(preparedStatement);
 		
@@ -159,7 +159,7 @@ class PooledCassandraConnection implements PooledConnection
 
 	}
 
-	void statementErrorOccurred(CassandraPreparedStatement preparedStatement, SQLException sqlException)
+	void statementErrorOccurred(PhysicalCassandraPreparedStatement preparedStatement, SQLException sqlException)
 	{
 		StatementEvent event = new StatementEvent(this, preparedStatement, sqlException);
 		for (StatementEventListener listener : statementEventListeners)
@@ -168,7 +168,7 @@ class PooledCassandraConnection implements PooledConnection
 		}
 		
 		String cql = preparedStatement.getCql();
-		Set<CassandraPreparedStatement> usedStatements = usedPreparedStatements.get(cql);
+		Set<PhysicalCassandraPreparedStatement> usedStatements = usedPreparedStatements.get(cql);
 		
 		if (!(event.getSQLException() instanceof SQLRecoverableException))
 		{
@@ -193,14 +193,14 @@ class PooledCassandraConnection implements PooledConnection
 	synchronized ManagedPreparedStatement prepareStatement(ManagedConnection managedConnection, String cql) throws SQLException
 	{
 		if (!freePreparedStatements.containsKey(cql)) {
-			freePreparedStatements.put(cql, new HashSet<CassandraPreparedStatement>());
-			usedPreparedStatements.put(cql, new HashSet<CassandraPreparedStatement>());
+			freePreparedStatements.put(cql, new HashSet<PhysicalCassandraPreparedStatement>());
+			usedPreparedStatements.put(cql, new HashSet<PhysicalCassandraPreparedStatement>());
 		}
 		
-		Set<CassandraPreparedStatement> freeStatements = freePreparedStatements.get(cql);
-		Set<CassandraPreparedStatement> usedStatements = usedPreparedStatements.get(cql);
+		Set<PhysicalCassandraPreparedStatement> freeStatements = freePreparedStatements.get(cql);
+		Set<PhysicalCassandraPreparedStatement> usedStatements = usedPreparedStatements.get(cql);
 
-		CassandraPreparedStatement managedPreparedStatement;
+		PhysicalCassandraPreparedStatement managedPreparedStatement;
 		if (freeStatements.isEmpty())
 		{
 			managedPreparedStatement = physicalConnection.prepareStatement(cql);

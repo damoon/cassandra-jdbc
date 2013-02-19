@@ -77,7 +77,7 @@ public class DataSourceTest
     @Test
     public void testConstructor() throws Exception
     {
-        CassandraDataSource cds = new CassandraDataSource(HOST,PORT,KEYSPACE,USER,PASSWORD,VERSION);
+    	PhysicalCassandraDataSource cds = new PhysicalCassandraDataSource(HOST,PORT,KEYSPACE,USER,PASSWORD,VERSION);
         assertEquals(HOST,cds.getServerName());
         assertEquals(PORT,cds.getPortNumber());
         assertEquals(KEYSPACE,cds.getDatabaseName());
@@ -85,7 +85,7 @@ public class DataSourceTest
         assertEquals(PASSWORD,cds.getPassword());
         assertEquals(VERSION, cds.getVersion());
         
-        DataSource ds = new CassandraDataSource(HOST,PORT,KEYSPACE,USER,PASSWORD,VERSION);
+        DataSource ds = new PhysicalCassandraDataSource(HOST,PORT,KEYSPACE,USER,PASSWORD,VERSION);
         assertNotNull(ds);
         
         // null username and password
@@ -98,7 +98,7 @@ public class DataSourceTest
         cnx = ds.getConnection();
         assertFalse(cnx.isClosed());
         ds.setLoginTimeout(5);
-        assertEquals(VERSION, ((CassandraConnection) cnx).getConnectionProps().get(Utils.TAG_CQL_VERSION));
+        assertEquals(VERSION, ((PhysicalCassandraConnection) cnx).getConnectionProps().get(Utils.TAG_CQL_VERSION));
         assertEquals(5, ds.getLoginTimeout());
     }
 
@@ -106,7 +106,7 @@ public class DataSourceTest
     @Test
     public void testIsWrapperFor() throws Exception
     {
-        DataSource ds = new CassandraDataSource(HOST,PORT,KEYSPACE,USER,PASSWORD,VERSION);
+        DataSource ds = new PhysicalCassandraDataSource(HOST,PORT,KEYSPACE,USER,PASSWORD,VERSION);
         
         boolean isIt = false;
                 
@@ -122,7 +122,7 @@ public class DataSourceTest
     @Test(expected=SQLFeatureNotSupportedException.class)
     public void testUnwrap() throws Exception
     {
-        DataSource ds = new CassandraDataSource(HOST,PORT,KEYSPACE,USER,PASSWORD,VERSION);
+        DataSource ds = new PhysicalCassandraDataSource(HOST,PORT,KEYSPACE,USER,PASSWORD,VERSION);
 
         // it is a wrapper for DataSource
         DataSource newds = ds.unwrap(DataSource.class);        
