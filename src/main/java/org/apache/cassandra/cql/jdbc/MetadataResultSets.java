@@ -253,15 +253,14 @@ public  class MetadataResultSets
         StringBuilder query = new StringBuilder("SELECT keyspace_name,columnfamily_name,comment FROM system.schema_columnfamilies");
         String suffix1 = " WHERE %s = '%s'";
         String suffix2 = " AND %s = '%s'";
+        String allowFilteringSuffix = " ALLOW FILTERING";
         
         // check to see if it is qualified by schemaPattern or tableNamePattern
         if      ((schemaPattern!=null) && tableNamePattern==null) query.append(String.format(suffix1, "keyspace_name", schemaPattern));
-        else if ((schemaPattern==null) && tableNamePattern!=null) query.append(String.format(suffix1, "columnfamily_name", tableNamePattern));
+        else if ((schemaPattern==null) && tableNamePattern!=null) query.append(String.format(suffix1, "columnfamily_name", tableNamePattern)).append(allowFilteringSuffix);
         else if ((schemaPattern!=null) && tableNamePattern!=null)
             query.append(String.format(suffix1 + suffix2, "keyspace_name", schemaPattern,"columnfamily_name", tableNamePattern));
 
-        query.append(" ALLOW FILTERING");
-        
         System.out.println(query.toString());
 
         Entry entryC = new Entry("TABLE_CAT",bytes(catalog),ASCII_TYPE);
